@@ -8,7 +8,7 @@
 manim.sublime-project
 manim.sublime-workspace
 
-output/
+media/animations/
 __pycache__/
 README.md
 requirements.txt
