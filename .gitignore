@@ -1,0 +1,16 @@
+*.pyc
+*.bak
+.DS_Store
+.floo
+.flooignore
+*.xml
+*.iml
+manim.sublime-project
+manim.sublime-workspace
+
+output/
+__pycache__/
+README.md
+requirements.txt
+3b1b/
+files/
