@@ -1,0 +1,49 @@
+future features:
+- add command to switch colors?
+COLOR X
+- it might be a good idea in the future to allow \linebreak for horizontal aligned stuff
+
+Idea: design a mark-up language for videos lectures and presentations, and a parser that takes as input a file in this mark-up language and produces a presentation using manim.
+
+Conceptually, the presentation is a long "scroll" of paper. Lines appear one by one, below the previous one. Once there is no more space, previous lines scroll up until they disappear (without cutting lines in half). To show the next line, the user must press intro. It allows the integration of manim scenes.
+
+Syntax of the mark-up language:
+Every line of the mark-up file (input) corresponds to a "line" of the output (presentation).
+An output line can be of many types. The first word of every input line determines the type of the output line. The rest of the input line is parsed as latex (you can use $ $, \color{}{}, \textit{}, \textbf{}, and \underline{ }).
+
+Line types:
+TITLE --- bigger font, flushes everything before it
+- --- adds text with a bullet point
+* --- adds text without a bullet point
+DEF "X" --- Definition: bullet point with X highlighted and ':'
+( --- A set of lines aligned horizontally and evenly spaced. one item per line until a line with ) is reached. Trick: using ( and ) with a single line can be used to center it.
+SCENE "X" Y --- loads the scene X, centered, and with a height of Y
+IMAGE "X" Y --- loads image X, centered, and with a height of Y
+
+Special keywords:
+> --- when it is the first char of a line, there is no wait for user input before showing the line. Cannot appear before (
+
+
+Example presentation:
+
+TITLE Introduction to Computational Complexity
+- This video: basic definitions needed for explaining Turing Machines (next video)
+DEF "Alphabet" a finite set of symbols
+(
+* $\Sigma=\{a,b,c\}$
+* $\Sigma=\{0,1\}$
+* $\Sigma=\{a,b,\ldots,z\}$
+* ASCII symbols
+)
+DEF "Word" a finite sequence of symbols from an alphabet
+(
+* $w=abbab$
+* $w=0110$
+* $w=\varepsilon$
+* hello my name is martha
+)
+DEF "Language" a set of words from an alphabet (can be infinite!)
+- $\{aa, aba, babab\}$
+- words over $\{a,b\}$ with an even number of $a$'s
+- words in english
+- sentences in english
