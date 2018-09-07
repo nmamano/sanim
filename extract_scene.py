@@ -243,6 +243,7 @@ def get_module(file_name):
 
 
 def main():
+    sys.path.append('active_projects/knight') #to be able to extract the scene from a different folder
     config = get_configuration()
     module = get_module(config["file"])
     scene_names_to_classes = dict(inspect.getmembers(module, is_scene))
