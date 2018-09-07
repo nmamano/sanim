@@ -186,7 +186,7 @@ def handle_scene(scene, **config):
             commands.append(scene.get_movie_file_path())
         # commands.append("-g")
         FNULL = open(os.devnull, 'w')
-        sp.call(commands, stdout=FNULL, stderr=sp.STDOUT)
+        sp.call(commands, stdout=FNULL, stderr=sp.STDOUT, shell=True)
         FNULL.close()
 
     if config["quiet"]:
