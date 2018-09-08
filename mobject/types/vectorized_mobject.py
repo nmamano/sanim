@@ -18,9 +18,9 @@ from utils.simple_functions import clip_in_place
 
 class VMobject(Mobject):
     CONFIG = {
-        "fill_color": None,
+        "fill_color": BLACK,
         "fill_opacity": 0.0,
-        "stroke_color": None,
+        "stroke_color": BLACK,
         "stroke_opacity": 1.0,
         "stroke_width": DEFAULT_STROKE_WIDTH,
         # The purpose of background stroke is to have

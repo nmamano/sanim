@@ -13,7 +13,7 @@ from mobject.types.vectorized_mobject import VectorizedPoint
 import operator as op
 from functools import reduce
 
-TEX_MOB_SCALE_FACTOR = 0.05
+TEX_MOB_SCALE_FACTOR = 0.03
 
 
 class TexSymbol(VMobjectFromSVGPathstring):
@@ -248,6 +248,21 @@ class TextMobject(TexMobject):
         "template_tex_file_body": TEMPLATE_TEXT_FILE_BODY,
         "alignment": "\\centering",
     }
+
+
+class BulletedItem(TextMobject):
+    CONFIG = {
+        "buff": MED_LARGE_BUFF,
+        "dot_scale_factor": 2,
+        "template_tex_file_body": TEMPLATE_TEXT_FILE_BODY,
+        "alignment": "",
+    }
+
+    def __init__(self, item, **kwargs):
+        TextMobject.__init__(self, item, **kwargs)
+        dot = TexMobject("\\cdot").scale(self.dot_scale_factor)
+        dot.next_to(self[0], LEFT, 1.5*SMALL_BUFF)
+        self.add_to_back(dot)
 
 
 class BulletedList(TextMobject):

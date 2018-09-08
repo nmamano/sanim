@@ -1,5 +1,5 @@
 TITLE Introduction to Computational Complexity
-- This video: basic definitions needed for explaining Turing Machines (next video)
+* This video: basic definitions needed for explaining Turing Machines (next video)
 DEF Alphabet a finite set of symbols
 (
 * $\Sigma=\{a,b,c\}$
@@ -10,11 +10,11 @@ DEF Alphabet a finite set of symbols
 DEF Word a finite sequence of symbols from an alphabet
 (
 * $w=abbab$
-* $w=0110$
+>* $w=0110$
 * $w=\varepsilon$
 )
 DEF Language a set of words from an alphabet (can be infinite!)
 - $\{aa, aba, babab\}$
-- words over $\{a,b\}$ with an even number of $a$'s
+>- words over $\{a,b\}$ with an even number of $a$'s
 - words in english
 - sentences in english

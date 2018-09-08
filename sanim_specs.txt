@@ -2,6 +2,17 @@ future features:
 - add command to switch colors?
 COLOR X
 - it might be a good idea in the future to allow \linebreak for horizontal aligned stuff
+- add ! command to make a line survive flushes (for important definitions)
+- add hline command
+
+todo
+- text reaches the right margin
+- automatic line breaks where appropriate
+- change color scheme
+- enable the \color{}{}
+- for definitions, animate the term before the definition
+- scroll functionality
+
 
 Idea: design a mark-up language for videos lectures and presentations, and a parser that takes as input a file in this mark-up language and produces a presentation using manim.
 
