@@ -1,6 +1,8 @@
 import os
 import numpy as np
 
+SANIM_AUX_FILE = "sanim.tmp"
+
 env_MEDIA_DIR = None
 MEDIA_DIR = "#ERROR#"
 

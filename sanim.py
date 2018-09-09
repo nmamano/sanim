@@ -319,16 +319,16 @@ class DefElem(OutputElem):
         self.defi.align_to(self.term, UP)
 
     def get_shift_center_at_actions(self, pos_mobj):
-        pos_term = TextMobject(term_text, alignment = "") #used for positioning
-        pos_defi = TextMobject(defi_text, alignment = "") #used for positioning
+        pos_term = TextMobject(self.term_text, alignment = "") #used for positioning
+        pos_defi = TextMobject(self.defi_text, alignment = "") #used for positioning
         pos_term.move_to(pos_mobj)
         pos_defi.next_to(pos_term, RIGHT)
         pos_defi.align_to(pos_term, UP)
         return [ApplyMethod(self.term.move_to, pos_term), ApplyMethod(self.defi.move_to, pos_defi)]
 
     def get_shift_left_aligned_actions(self, pos_mobj):
-        pos_term = TextMobject(term_text, alignment = "") #used for positioning
-        pos_defi = TextMobject(defi_text, alignment = "") #used for positioning
+        pos_term = TextMobject(self.term_text, alignment = "") #used for positioning
+        pos_defi = TextMobject(self.defi_text, alignment = "") #used for positioning
         pos_term.move_to(pos_mobj)
         pos_term.to_edge(LEFT)
         pos_defi.next_to(pos_term, RIGHT)
@@ -470,7 +470,10 @@ class Sanim(Scene):
         "camera_config": {"background_color": BACKGROUND}
     }
     def construct(self):
-        source_file = "sanim_input2.txt"
+
+        with open(SANIM_AUX_FILE, "r") as sanim_file:
+                source_file = sanim_file.read()
+
         lines = inputToLines(source_file)
         print("finished parsing")
         animate_lines(lines, self)

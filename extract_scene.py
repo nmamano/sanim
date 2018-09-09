@@ -72,7 +72,11 @@ def get_configuration():
         parser.add_argument("-o", "--output_name")
         parser.add_argument("-n", "--start_at_animation_number")
         parser.add_argument("-r", "--resolution")
+        parser.add_argument("-x", "--sanim_file")
         args = parser.parse_args()
+        if args.sanim_file is not None:
+            with open(SANIM_AUX_FILE, "w") as sanim_file:
+                sanim_file.write(args.sanim_file)
         if args.output_name is not None:
             output_name_root, output_name_ext = os.path.splitext(
                 args.output_name)
@@ -92,6 +96,7 @@ def get_configuration():
     config = {
         "file": args.file,
         "scene_name": args.scene_name,
+        "sanim_file": args.sanim_file,
         "open_video_upon_completion": args.preview,
         "show_file_in_finder": args.show_file_in_finder,
         # By default, write to file
@@ -243,7 +248,7 @@ def get_module(file_name):
 
 
 def main():
-    sys.path.append('active_projects/knight') #to be able to extract the scene from a different folder
+    # sys.path.append('active_projects/knight') #to be able to extract the scene from a different folder
     config = get_configuration()
     module = get_module(config["file"])
     scene_names_to_classes = dict(inspect.getmembers(module, is_scene))
