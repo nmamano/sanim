@@ -6,6 +6,16 @@ DEF "In this video" define ``problem'', ``hard'', and ``program'' mathematically
 $37\times 13$ ; ; > Multiplication
 $8,2,3,6,1$ ; ; > Sorting
 - A \textit{\textbf{problem}} is a \textbf{function} mapping each instance to its solution.
+FLUSH 4
 \textbf{Problem} ; ; > \textbf{Instance} ; ; > \textbf{Solution}
 Sorting ; ; > $8,2,3,6,1$ ;  $\longrightarrow$ ; > $1,2,3,6,8$
 Median ; ; > $8,2,3,6,1$ ;  $\longrightarrow$ ; > $3$
+- We focus on \textit{\textbf{decision problems}}: problems where the solution is YES$/$NO.
+FLUSH 8
+\textbf{Decision Problem} ; ; > \textbf{Instance} ; ; > \textbf{Solution}
+Prime testing ; ; $9$ ; >$\longrightarrow$ ; > NO
+;; >$11$; >$\longrightarrow$; >YES
+- In general: does the instance have $X$ property?
+- We assume that the input is just a (finite) binary string.
+FLUSH 13
+Mathematical object ; >vs ; >Binary representation
