@@ -13,7 +13,7 @@ from utils.bezier import interpolate
 from utils.config_ops import digest_config
 from utils.paths import counterclockwise_path
 from utils.rate_functions import double_smooth
-from utils.rate_functions import smooth
+from utils.rate_functions import smooth, rush_from, rush_into, there_and_back
 
 # Drawing
 
@@ -47,7 +47,7 @@ class Uncreate(ShowCreation):
 class DrawBorderThenFill(Animation):
     CONFIG = {
         "run_time": 2,
-        "stroke_width": 2,
+        "stroke_width": 1.5,
         "stroke_color": None,
         "rate_func": double_smooth,
     }

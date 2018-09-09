@@ -4,177 +4,390 @@ from big_ol_pile_of_manim_imports import *
 
 SCREEN_WIDTH = 14
 HORIZONTAL_SEPARATOR = 1
-BACKGROUND = "#cceeff"
+BACKGROUND = "#e6f3ff"
 DEF_COLOR = "#991f00"
+DEFAULT_RUNTIME = 0.8
+DEFAULT_WAIT_TIME = 1
+#lines starting with this add text to the presentation
+CONTENT_KEYWORDS = {"TITLE", "DEF", "-", "PLAIN"}
+
+#lines starting with this give instructions about how to display the presentation
+COMMAND_KEYWORDS = {"FLUSH"}
+
+#modifiers are the only keywords that can appear before other keywords
+#(and nowhere else)
+MODIFIER_SYMBOLS = {">", "^"}
+
+
+#a line of text plus its line number in the source file
+#it breaks it down into its basic components
+class InputLine:
+    def __init__(self, line_num, raw_content):
+        #line_num is used to flush up to a certian line with the FLUSH keyword
+        self.line_num = line_num
+        #keep the original line intact just in case
+        self.raw_content = raw_content[:]
+        self.raw_input_elems = raw_content.split(';')
+        self.input_elems = [InputElem(elem) for elem in self.raw_input_elems]
+        self.output_content_elems = []
+        for elem in self.input_elems:
+            if elem.keyword == "TITLE":
+                self.output_content_elems.append(TitleElem(elem))
+            elif elem.keyword == "PLAIN":
+                self.output_content_elems.append(PlainElem(elem))
+            elif elem.keyword == "-":
+                self.output_content_elems.append(BulletElem(elem))
+            elif elem.keyword == "DEF":
+                self.output_content_elems.append(DefElem(elem))
+
+    def is_content_line(self):
+        return self.output_content_elems != []
+
+class InputElem:
+    def __init__(self, raw_content):
+        if ';' in raw_content:
+            sys.exit('internal parsing error: input element cannot contain ";"')
+
+        #keep the raw content just in case
+        self.raw_content = raw_content[:]
+        self.modifiers = []
+
+        # if raw_content == '':
+        #     self.content = ''
+        #     self.keyword = 'PLAIN'
+        #     self.keyword_type = 'content'
+        #     self.modifiers.append('>')
+        #     return
+
+        #parse modifiers
+        i = 0
+        while i < len(raw_content) and (raw_content[i] == ' ' or raw_content[i] in MODIFIER_SYMBOLS):
+            if raw_content[i] in MODIFIER_SYMBOLS:
+                self.modifiers.append(raw_content[i])
+            i += 1
+        while i < len(raw_content) and raw_content[i] == ' ':
+            i += 1
+
+        #parse keyword
+        raw_content = raw_content[i:] #everything except modifiers and trailing white space
+        potential_keyword = raw_content[:raw_content.find(' ')]
+        if potential_keyword in CONTENT_KEYWORDS or potential_keyword in COMMAND_KEYWORDS:
+            self.keyword = potential_keyword
+            self.content = raw_content[raw_content.find(' ')+1:]
+        else:
+            #no keyword means that this is just plain text
+            self.keyword = "PLAIN" #'fake' keyword introduced by us
+            self.content = raw_content
+            if self.content == '':
+                self.modifiers.append('>') #never wait for empty input
+
+        self.keyword_type = 'content' if self.keyword in CONTENT_KEYWORDS else 'command'
+
+class OutputElem:
+    def __init__(self, input_elem):
+        self.input_elem = input_elem
+        if '>' in input_elem.modifiers:
+            self.wait_for_input = False
+        else: self.wait_for_input = True
+
+    def individual_play(self, scene):
+        pass
+
+    def get_play_actions(self):
+        pass
+
+    def individual_play_duration(self):
+        pass
+
+    def position_center_at(self, aux_mobj):
+        pass
+
+    def position_left_aligned(self, aux_mobj):
+        pass
+
+    def get_bottom_right_mobject(self):
+        pass
+
+class TitleElem(OutputElem):
+    def __init__(self, input_elem):
+        super().__init__(input_elem)
+        content = input_elem.content
+        if content == '':
+            sys.exit('empty title')
+        self.run_time = 1.1+len(content)/200
+        self.text = Title(content, scale_factor=1.3, color=BLACK, background_stroke_color=BACKGROUND)
+    def individual_play(self, scene):
+        scene.play(Write(self.text), run_time=self.run_time)
+
+    def get_play_actions(self):
+        return [Write(self.text)]
+
+    def individual_play_duration(self):
+        return self.run_time
+
+    def position_center_at(self, aux_mobj):
+        self.text.move_to(aux_mobj)
+
+    def position_left_aligned(self, aux_mobj):
+        self.text.center()
+        self.text.to_edge(UP)
+
+    def get_bottom_right_mobject(self):
+        return self.text
+
+class PlainElem(OutputElem):
+    def __init__(self, input_elem):
+        super().__init__(input_elem)
+        content = input_elem.content
+        if content == '':
+            self.text = TextMobject("aux") #this is never displayed but allows the empty object to
+                                           #be positioned and return its position,
+                                           #which can be useful since empty elems occupy space anyway
+            self.run_time = 0
+            self.is_empty = True
+        else:
+            self.text = TextMobject(content, color=BLACK, background_stroke_color=BACKGROUND)
+            self.run_time = 0.6+len(content)/150
+            self.is_empty = False
+
+    def individual_play(self, scene):
+        if self.is_empty:
+            return
+        scene.play(Write(self.text), run_time=self.run_time)
+
+    def get_play_actions(self):
+        if self.is_empty:
+            return []
+        return [Write(self.text)]
+
+    def individual_play_duration(self):
+        return self.run_time
+
+    def position_center_at(self, aux_mobj):
+        self.text.move_to(aux_mobj)
+
+    def position_left_aligned(self, aux_mobj):
+        self.text.move_to(aux_mobj)
+        self.text.to_edge(LEFT)
+
+    def get_bottom_right_mobject(self):
+        return self.text
+
+class BulletElem(OutputElem):
+    def __init__(self, input_elem):
+        super().__init__(input_elem)
+        content = input_elem.content
+        if content == '':
+            sys.exit("empty bullet item")
+        self.text = BulletedItem(content, color=BLACK, background_stroke_color=BACKGROUND)
+        self.run_time = 0.6+len(content)/150
+
+    def individual_play(self, scene):
+        scene.play(Write(self.text), run_time=self.run_time)
+
+    def get_play_actions(self):
+        return [Write(self.text)]
+
+    def individual_play_duration(self):
+        return self.run_time
+
+    def position_center_at(self, aux_mobj):
+        self.text.move_to(aux_mobj)
+
+    def position_left_aligned(self, aux_mobj):
+        self.text.move_to(aux_mobj)
+        self.text.to_edge(LEFT)
+
+    def get_bottom_right_mobject(self):
+        return self.text
+
+class DefElem(OutputElem):
+    def __init__(self, input_elem):
+        super().__init__(input_elem)
+        content = input_elem.content[:]
+        #parse content to extract term and definition
+        content = content.lstrip() #removes leading whitespace
+        if content[0] != '"':
+            sys.exit('invalid use of DEF. syntax: DEF "term" definition')
+        content = content[1:]
+        if not '"' in content:
+            sys.exit('invalid use of DEF. syntax: DEF "term" definition')
+        self.term_text = content[:content.find('"')]
+        self.defi_text = content[content.find('"')+1:]
+        self.defi_text.lstrip()
+        if self.term_text == '':
+            sys.exit('empty term in DEF')
+        if self.defi_text == '':
+            sys.exit('empty definition in DEF')
+
+        self.term = TextMobject('\\textbf{'+self.term_text+'}:',background_stroke_color=BACKGROUND, alignment="")
+        self.term.set_color(DEF_COLOR)
+        self.defi = TextMobject(self.defi_text,color=BLACK, background_stroke_color=BACKGROUND, alignment="")
+        #res.buff = LARGE_BUFF #not sure why this was here
+
+        self.term_run_time = 0.5
+        self.in_between_time = 0.5
+        self.defi_run_time = 0.6+len(self.defi_text)/150
+
+    def individual_play(self, scene):
+        scene.play(Write(self.term), run_time=self.term_run_time)
+        scene.wait(self.in_between_time)
+        scene.play(Write(self.defi), run_time=self.defi_run_time)
+
+    def get_play_actions(self):
+        return [Write(self.term), Write(self.defi)]
+
+    def individual_play_duration(self):
+        return self.term_run_time + self.in_between_time + self.defi_run_time
+
+    def position_center_at(self, aux_mobj):
+        #group = VGroup(self.term, self.defi)
+        #group.move_to(aux_mobj)
+        self.term.move_to(aux_mobj)
+        self.defi.next_to(self.term, RIGHT)
+        self.defi.align_to(self.term, UP)
+
+    def position_left_aligned(self, aux_mobj):
+        self.term.move_to(aux_mobj)
+        self.term.to_edge(LEFT)
+        self.defi.next_to(self.term, RIGHT)
+        self.defi.align_to(self.term, UP)
+
+    def get_bottom_right_mobject(self):
+        return self.defi
+
+#note that the first line has index 1 (because my editor starts counting at 1...)
+def inputToLines(source_file):
+    input_lines = open(source_file).read().splitlines()
+    res = []
+    i = 1
+    for line in input_lines:
+        if line == "":
+            sys.exit("empty line "+i)
+        res.append(InputLine(i, line))
+        i += 1
+    return res
+
+def display_animation_buffer(scene, buffer):
+    if len(buffer) == 0:
+        return
+    if len(buffer) == 1:
+        buffer[0].individual_play(scene)
+        scene.wait(DEFAULT_WAIT_TIME)
+    else:
+        actions = []
+        for elem in buffer:
+            actions += elem.get_play_actions()
+        scene.play(*actions, run_time=DEFAULT_RUNTIME)
+        scene.wait(DEFAULT_WAIT_TIME)
+
+def animate_lines(scene, lines):
+    # active_lines = []
+    animation_buffer = []
+    curr_pos = TextMobject("aux") #used only for its positioninig
+    curr_pos.to_corner(TOP+LEFT, buff=MED_SMALL_BUFF)
+    for line in lines:
+        #scene.play(Write(curr_pos))
+        if line.is_content_line():
+            elems = line.output_content_elems
+            if len(elems) == 1:
+                elem = elems[0]
+                elem.position_left_aligned(curr_pos)
+                curr_pos.move_to(elem.get_bottom_right_mobject().get_edge_center(DOWN))
+                if elem.wait_for_input:
+                    display_animation_buffer(scene, animation_buffer)
+                    animation_buffer = [elem]
+                else:
+                    animation_buffer.append(elem)
+            else:
+                num_elems = len(elems)
+                i = 1
+                for elem in elems:
+                    curr_pos.to_edge(LEFT, buff=0)
+                    curr_pos.shift(RIGHT*(curr_pos.get_edge_center(LEFT)-curr_pos.get_center()))
+                    curr_pos.shift(i*2*FRAME_X_RADIUS*RIGHT/(num_elems+1))
+                    elem.position_center_at(curr_pos)
+                    i += 1
+                    if elem.wait_for_input:
+                        display_animation_buffer(scene, animation_buffer)
+                        animation_buffer = [elem]
+                    else:
+                        animation_buffer.append(elem)
+                curr_pos.move_to(elems[-1].get_bottom_right_mobject().get_edge_center(DOWN))
+
+            curr_pos.shift(DOWN*0.5)
+    display_animation_buffer(scene, animation_buffer)
+
 class Sanim(Scene):
     CONFIG = {
         "camera_config": {"background_color": BACKGROUND}
     }
     def construct(self):
         source_file = "sanim_input2.txt"
-        input_lines = open(source_file).read().splitlines()
-        raw_sobjects = get_raw_sobjects(input_lines)
-        sobjects = get_sobjects(raw_sobjects)
-        arrange_sobjects(sobjects)
-        self.play_animations(sobjects)
+        lines = inputToLines(source_file)
+        print("finished parsing")
+        animate_lines(self, lines)
+        # raw_sobjects = get_raw_sobjects(input_lines)
+        # sobjects = get_sobjects(raw_sobjects)
+        # arrange_sobjects(sobjects)
+        # self.play_animations(sobjects)
 
-    def play_animations(self, sobjects):
-        sobject_list = []
-        for line in sobjects:
-            if type(line) is list:
-                sobject_list += line
-            else:
-                sobject_list.append(line)
-        i = 0
-        while i < len(sobject_list):
-            if not sobject_list[i].visible:
-                i += 1
-                continue
-            sobjs_to_play = [sobject_list[i]]
-            i += 1
-            while i < len(sobject_list) and not sobject_list[i].wait_for_input:
-                if sobject_list[i].visible:
-                    sobjs_to_play.append(sobject_list[i])
-                i += 1
-            self.play(*[Write(sobject) for sobject in sobjs_to_play], run_time=0.8)
+#     def play_animations(self, sobjects):
+#         sobject_list = []
+#         for line in sobjects:
+#             if type(line) is list:
+#                 sobject_list += line
+#             else:
+#                 sobject_list.append(line)
+#         i = 0
+#         while i < len(sobject_list):
+#             if not sobject_list[i].visible:
+#                 i += 1
+#                 continue
+#             sobjs_to_play = [sobject_list[i]]
+#             i += 1
+#             while i < len(sobject_list) and not sobject_list[i].wait_for_input:
+#                 if sobject_list[i].visible:
+#                     sobjs_to_play.append(sobject_list[i])
+#                 i += 1
+#             self.play(*[Write(sobject) for sobject in sobjs_to_play], run_time=0.8)
+#             self.wait(1)
 
+# def arrange_sobjects(sobjects):
+#     prev_obj = None
+#     for line in sobjects:
+#         if type(line) is not list:
+#             if prev_obj is None:
+#                 line.to_edge(UP)
+#             else:
+#                 line.next_to(prev_obj.get_corner(DOWN+LEFT), DOWN*1.5)
+#                 if prev_obj.SOtype == "TITLE":
+#                     line.shift(DOWN*0.25)
 
-def get_raw_sobjects(input_lines):
-    res = []
-    in_horizontal_group = False
-    for line in input_lines:
-        if line[0] == '(':
-            if in_horizontal_group:
-                sys.exit("found '(' inside '('")
-            in_horizontal_group = True
-            res.append([])
-        elif line[0] == ')':
-            if not in_horizontal_group:
-                sys.exit("found ')' before '('")
-            in_horizontal_group = False
-        else:
-            if in_horizontal_group:
-                res[-1].append(line)
-            else:
-                res.append(line)
-    return res
+#                 if line.SOtype == '-':
+#                    line.to_edge(LEFT, buff = MED_LARGE_BUFF)
+#                 else:
+#                    line.to_edge(LEFT, buff = MED_SMALL_BUFF)
+#             prev_obj = line
+#         else:
+#             if prev_obj is None:
+#                 sys.exit('bug')
+#             is_first = True
+#             numItems = len(line)
+#             i = 1
+#             for sobj in line:
+#                 if is_first:
+#                     sobj.next_to(prev_obj.get_corner(DOWN+LEFT), DOWN*2)
+#                     if prev_obj.SOtype == "TITLE":
+#                         line.shift(DOWN)
+#                     is_first = False
+#                 else:
+#                     sobj.next_to(prev_obj.get_edge_center(RIGHT),RIGHT)
+#                 sobj.to_edge(LEFT, buff=0)
+#                 sobj.shift(RIGHT*(sobj.get_edge_center(LEFT)-sobj.get_center()))
+#                 sobj.shift(i*2*FRAME_X_RADIUS*RIGHT/(numItems+1))
+#                 i += 1
+#                 prev_obj = sobj
 
-def get_sobjects(raw_sobjects):
-    res = []
-    for line in raw_sobjects:
-        if type(line) is not list:
-            if line[0] == '>':
-                res.append(SObject(line[1:], SCREEN_WIDTH, False))
-            else:
-                res.append(SObject(line, SCREEN_WIDTH, True))
-        else:
-            res.append([])
-            num_sobjects = len(line)
-            max_width = (SCREEN_WIDTH-HORIZONTAL_SEPARATOR*(num_sobjects+1))/num_sobjects
-            for raw_sobject in line:
-                if raw_sobject[0] == '>':
-                    res[-1].append(SObject(raw_sobject[1:], max_width, False))
-                else:
-                    res[-1].append(SObject(raw_sobject, max_width, True))
-    return res
-
-def arrange_sobjects(sobjects):
-    prev_obj = None
-    for line in sobjects:
-        if type(line) is not list:
-            if prev_obj is None:
-                line.to_edge(UP)
-            else:
-                line.next_to(prev_obj.get_corner(DOWN+LEFT), DOWN)
-                if prev_obj.SOtype == "TITLE":
-                    line.shift(DOWN)
-
-                if line.SOtype == '-':
-                   line.to_edge(LEFT, buff = MED_LARGE_BUFF)
-                else:
-                   line.to_edge(LEFT, buff = MED_SMALL_BUFF)
-            prev_obj = line
-        else:
-            if prev_obj is None:
-                sys.exit('bug')
-            is_first = True
-            numItems = len(line)
-            i = 1
-            for sobj in line:
-                if is_first:
-                    sobj.next_to(prev_obj.get_corner(DOWN+LEFT), DOWN)
-                    if prev_obj.SOtype == "TITLE":
-                        line.shift(DOWN)
-                    is_first = False
-                else:
-                    sobj.next_to(prev_obj.get_edge_center(RIGHT),RIGHT)
-                sobj.to_edge(LEFT, buff=0)
-                sobj.shift(-1*LEFT*(sobj.get_edge_center(LEFT)-sobj.get_center()))
-                sobj.shift(i*2*FRAME_X_RADIUS*RIGHT/(numItems+1))
-                i += 1
-                prev_obj = sobj
-
-
-class SObject(VGroup):
-
-    def __init__(self, text, max_width, wait_for_input):
-        self.text = text
-        self.max_width = max_width
-        self.SOtype = text.split()[0]
-        self.content = text[len(self.SOtype)+1:]
-        self.wait_for_input = wait_for_input
-        self.time_stamp = None #this will be updated later
-        self.visible = True
-
-        if self.SOtype == 'TITLE':
-            self.vline = makeTitle(self.content, max_width)
-        elif self.SOtype == 'DEF':
-            self.vline = makeDef(self.content, max_width)
-        elif self.SOtype == '-':
-            self.vline = makeBullet(self.content, max_width)
-        elif self.SOtype == '*':
-            if self.content == '':
-                self.visible = False
-                self.vline = makePlaneLine("no show", max_width)
-            else:
-                self.vline = makePlaneLine(self.content, max_width)
-        elif self.SOtype == 'SCENE':
-            self.vline = makeScene(self.content, max_width)
-        elif self.SOtype == 'IMAGE':
-            self.vline = makeImage(self.content, max_width)
-        else:
-            sys.exit('unexpected type '+self.SOtype)
-        super().__init__(self.vline)
-
-def makeTitle(content, width):
-    res = Title(content, scale_factor=1.3, color=BLACK, background_stroke_color=BACKGROUND);
-    return res;
-
-def makeDef(content, width):
-    if content[0] != '"':
-        sys.exit('term defined should be within "')
-    i = 2
-    while content[i] != '"':
-        i += 1
-
-    term = content[1:i]
-    definition = content[i+1:].lstrip()
-
-    res = TextMobject('\\textbf{'+term+'}:',definition, color=BLACK, background_stroke_color=BACKGROUND)
-    res.set_color_by_tex(term, DEF_COLOR)
-    res.buff = LARGE_BUFF
-    return res
-
-def makeBullet(content, width):
-    return BulletedItem(content, color=BLACK, background_stroke_color=BACKGROUND)
-
-def makePlaneLine(content, width):
-    if len(content) == 0:
-        sys.exit("empty line")
-    return TextMobject(content, color=BLACK, background_stroke_color=BACKGROUND)
-
-def makeScene(content, width):
-    return TextMobject('not implemented')
-
-def makeImage(content, width):
-    return TextMobject('not implemented')
+#             elif elem.keyword == "-":
+#                 self.output_content_elems.append(BulletElem(elem))
