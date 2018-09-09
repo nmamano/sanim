@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<body bgcolor="#e6f3ff">
+
+<video id="video1" width="1280" height="720" muted>
+Your browser does not support the video tag.
+</video>
+
+<script>
+//<source src="media/animations/sanim/480p15/Sanim.mp4" type="video/mp4">
+
+var PLAY_BACK_SPEED = 2;
+
+//stuff for backward playing
+var intervalRewind;
+function rewind(vid) { // button function for rewind
+    intervalRewind = setInterval(function() {
+       vid.playbackRate = 1.0;
+       if(vid.currentTime == 0){
+           clearInterval(intervalRewind);
+           vid.pause();
+       }
+       else{
+           vid.currentTime += -.1;
+       }
+    }, 100/PLAY_BACK_SPEED);
+}
+
+var vid = document.getElementById("video1");
+var source = document.createElement('source');
+source.setAttribute('src', 'media/animations/sanim/480p15/Sanim.mp4');
+source.setAttribute('type','video/mp4');
+vid.appendChild(source);
+
+var timeStamps = [0, 3, 6, 9];
+var currPos = 0;
+var isCurrPlaying = false;
+
+document.onkeydown = function(e) {
+    if (isCurrPlaying) {
+        console.log('still playing; wait until transition finishes');
+        return;
+    }
+    isCurrPlaying = true; //lock the function
+    vid.currentTime = timeStamps[currPos]; //start video from the time stamp
+
+    if (e.key == 'ArrowDown' || e.key == 'ArrowRight' || e.key == 'Space') {
+        if (currPos == timeStamps.length-1) {
+            isCurrPlaying = false;
+            return;
+        }
+        let duration = timeStamps[currPos+1] - timeStamps[currPos];
+        vid.play();
+        setTimeout(function(){
+            vid.pause();
+            console.log('done playing',duration, 's forward from pos',currPos);
+            currPos++;
+            isCurrPlaying = false;
+        }, duration*1000);
+    } else if (e.key == 'ArrowUp' || e.key == 'ArrowLeft') {
+        if (currPos == 0) {
+            isCurrPlaying = false;
+            return;
+        }
+        let duration = timeStamps[currPos] - timeStamps[currPos-1];
+        rewind(vid);
+        setTimeout(function(){
+            clearInterval(intervalRewind);
+            vid.pause();
+            console.log('done playing',duration,'s backwards from pos',currPos);
+            currPos--;
+            isCurrPlaying = false;
+        }, duration*1000/PLAY_BACK_SPEED);
+    }
+
+}
+
+</script>
+
+
+</body>
+</html>
