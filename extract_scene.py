@@ -74,9 +74,23 @@ def get_configuration():
         parser.add_argument("-r", "--resolution")
         parser.add_argument("-x", "--sanim_file")
         args = parser.parse_args()
-        if args.sanim_file is not None:
-            with open(SANIM_AUX_FILE, "w") as sanim_file:
-                sanim_file.write(args.sanim_file)
+
+        ############################################################
+        # NEW PART FOR SANIM
+        # the sanim auxiliry file acts as a flag to know if we are in sanim mode
+        # or not from Scene
+        # if the file is empty, manim runs as usual
+        # if the file contains a path, all the manim and sanim output
+        # files appear in the sanim folder
+        ############################################################
+        if args.sanim_file is None and args.file == "sanim.py":
+            sys.exit("running sanim without specifying input file")
+        with open(SANIM_AUX_FILE, "w") as sanim_aux_file:
+            if args.sanim_file is not None:
+                sanim_aux_file.write(args.sanim_file)
+            else:
+                sanim_aux_file.write('')
+
         if args.output_name is not None:
             output_name_root, output_name_ext = os.path.splitext(
                 args.output_name)
@@ -189,6 +203,7 @@ def handle_scene(scene, **config):
             commands.append(scene.get_image_file_path())
         else:
             commands.append(scene.get_movie_file_path())
+
         # commands.append("-g")
         FNULL = open(os.devnull, 'w')
         sp.call(commands, stdout=FNULL, stderr=sp.STDOUT, shell=True)

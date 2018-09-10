@@ -21,6 +21,8 @@ from utils.iterables import list_update
 from utils.output_directory_getters import add_extension_if_not_present
 from utils.output_directory_getters import get_movie_output_directory
 from utils.output_directory_getters import get_image_output_directory
+from utils.output_directory_getters import in_sanim_mode
+from utils.output_directory_getters import get_sanim_source_dir
 
 from container.container import Container
 
@@ -550,7 +552,8 @@ class Scene(Container):
                     self.save_image(
                         "frame" + str(self.frame_num), self.pngs_mode, True)
                     self.frame_num = self.frame_num + 1
-                self.writing_process.stdin.write(frame.tostring())
+                string = frame.tostring()
+                self.writing_process.stdin.write(string)
         if self.save_frames:
             self.saved_frames += list(frames)
 
@@ -565,7 +568,10 @@ class Scene(Container):
         if dont_update:
             sub_dir = str(self)
         path = get_image_output_directory(self.__class__, sub_dir)
-        file_name = add_extension_if_not_present(name or str(self), ".png")
+        if in_sanim_mode():
+            file_name = "pic.png"
+        else:
+            file_name = add_extension_if_not_present(name or str(self), ".png")
         return os.path.join(path, file_name)
 
     def save_image(self, name=None, mode="RGB", dont_update=False):
@@ -583,14 +589,20 @@ class Scene(Container):
         if extension is None:
             extension = self.movie_file_extension
         if name is None:
-            name = self.name
+            if in_sanim_mode():
+                name = "vid%d" % (self.camera.pixel_height)
+            else:
+                name = self.name
         file_path = os.path.join(directory, name)
         if not file_path.endswith(extension):
             file_path += extension
         return file_path
 
     def open_movie_pipe(self):
-        name = str(self)
+        if in_sanim_mode():
+            name = "vid%d" % (self.camera.pixel_height)
+        else:
+            name = str(self)
         file_path = self.get_movie_file_path(name)
         temp_file_path = file_path.replace(name, name + "Temp")
         print("Writing to %s" % temp_file_path)

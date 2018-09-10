@@ -1,0 +1,2 @@
+TITLE Complexity Theory\textemdash  Lecture 1: Introduction
+DEF "In a nutshell" how to classify \textit{\textbf{problems}} according to how \textit{\textbf{hard}} they are to solve by computer \textit{\textbf{programs}}.
