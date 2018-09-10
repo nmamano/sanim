@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 SANIM_AUX_FILE = "sanim_source.txt"
-
+SANIM_HTML_FILE = "sanim_web.html"
 env_MEDIA_DIR = None
 MEDIA_DIR = "#ERROR#"
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from big_ol_pile_of_manim_imports import *
+import shutil
 
 SCREEN_WIDTH = 14
 HORIZONTAL_SEPARATOR = 1
@@ -484,7 +485,9 @@ class Sanim(Scene):
         lines = input_to_lines(source_file)
         print("finished parsing")
         time_stamps = animate_lines(lines, self)
-        web_info_file = source_file[:source_file.find('.')]+'_for_web.txt'
+        source_folder = get_sanim_source_dir()
+        web_info_file = os.path.join(source_folder,'time_stamps.js')
         with open(web_info_file, 'w') as web_file:
-            web_file.write(str(time_stamps)+"\n")
-
+            web_file.write("var timeStamps = "+str([round(stmp, 4) for stmp in time_stamps])+"\n")
+        source_html = os.path.join(get_main_manim_dir(), SANIM_HTML_FILE)
+        shutil.copy(source_html, source_folder)

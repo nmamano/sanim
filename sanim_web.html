@@ -3,13 +3,15 @@
 <body bgcolor="#e6f3ff">
 
 <video id="video1" width="1280" height="720" muted>
+  <source src="vid1440.mp4" type="video/mp4">
+  <source src="vid480.mp4" type="video/mp4">
 Your browser does not support the video tag.
 </video>
 
+<script src="time_stamps.js"></script>
 <script>
-//<source src="media/animations/sanim/480p15/Sanim.mp4" type="video/mp4">
 
-var PLAY_BACK_SPEED = 2;
+var BACKWARD_SPEED = 2;
 
 //stuff for backward playing
 var intervalRewind;
@@ -23,16 +25,11 @@ function rewind(vid) { // button function for rewind
        else{
            vid.currentTime += -.1;
        }
-    }, 100/PLAY_BACK_SPEED);
+    }, 100/BACKWARD_SPEED);
 }
 
 var vid = document.getElementById("video1");
-var source = document.createElement('source');
-source.setAttribute('src', 'media/animations/sanim/480p15/Sanim.mp4');
-source.setAttribute('type','video/mp4');
-vid.appendChild(source);
 
-var timeStamps = [0, 3, 6, 9];
 var currPos = 0;
 var isCurrPlaying = false;
 
@@ -70,13 +67,12 @@ document.onkeydown = function(e) {
             console.log('done playing',duration,'s backwards from pos',currPos);
             currPos--;
             isCurrPlaying = false;
-        }, duration*1000/PLAY_BACK_SPEED);
+        }, duration*1000/BACKWARD_SPEED);
     }
 
 }
 
 </script>
-
 
 </body>
 </html>

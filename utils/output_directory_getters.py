@@ -37,10 +37,7 @@ def get_sanim_source_file_name():
 def in_sanim_mode():
     return get_sanim_source_file_name() != ''
 
-def get_sanim_source_dir():
-    if not in_sanim_mode():
-        sys.exit("shouldn't ask for sanim source dir if not in sanim mode")
-
+def get_main_manim_dir():
     #get folder of this file
     utils_path = os.path.dirname(os.path.realpath(__file__))
     # print('utils_path', utils_path)
@@ -51,6 +48,12 @@ def get_sanim_source_dir():
     # print('parts', parts)
     manim_path = os.path.join(*parts)
     manim_path = "C:\\"+manim_path[2:] #not sure the join above misses one bar??
+    return manim_path
+
+def get_sanim_source_dir():
+    if not in_sanim_mode():
+        sys.exit("shouldn't ask for sanim source dir if not in sanim mode")
+    manim_path = get_main_manim_dir()
     # print('manim_path', manim_path)
     #get the path from manim to the input sanim file
     parts = get_sanim_source_file_name().split('/')

@@ -18,5 +18,5 @@ Prime testing ; ; $9$ ; >$\longrightarrow$ ; > NO
 ;; >$11$; >$\longrightarrow$; >YES
 DEF "In general" a decision problem asks ``does the instance have $X$ property?''
 - We assume that the instance is just a (finite) \textbf{binary string}.
-FLUSH 13
+FLUSH 14
 Mathematical object ; >vs ; >Binary representation
