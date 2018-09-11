@@ -3,14 +3,16 @@
 from big_ol_pile_of_manim_imports import *
 import shutil
 
-SCREEN_WIDTH = 14
-HORIZONTAL_SEPARATOR = 1
 BACKGROUND = "#e6f3ff"
 DEF_COLOR = "#991f00"
 DEFAULT_RUNTIME = 0.8
-FLUSH_RUNTIME = 1.4
-DEFAULT_WAIT_TIME = 0 #1 #not needed for the web, since the user controls play
-FLUSH_WAIT_TIME = 0 #0.8 #same
+FLUSH_RUNTIME = 0.8
+#having some space between transitions allows the javascript to be more sloppy with the pausing times
+#the transitions are set to be in the middle of the wait time between transitions
+#eg, if there is a wait of 0.2s between transitions, then the player can run 0.1 longer than it should
+#and it wuld not be noticed
+WAIT_TIME = 0.2
+FLUSH_WAIT_TIME = 0.2 #0.8 #same
 #lines starting with this add text to the presentation
 CONTENT_KEYWORDS = {"TITLE", "DEF", "-", "PLAIN"}
 
@@ -19,7 +21,7 @@ COMMAND_KEYWORDS = {"FLUSH"}
 
 #modifiers are the only keywords that can appear before other keywords
 #(and nowhere else)
-MODIFIER_SYMBOLS = {">", "^"}
+MODIFIER_SYMBOLS = {">", "^"} #^ not implemented yet
 
 
 #a line of text plus its line number in the source file
@@ -293,7 +295,7 @@ class DefElem(OutputElem):
         #res.buff = LARGE_BUFF #not sure why this was here
 
         self.term_run_time = 0.5
-        self.in_between_time = 0.5
+        self.in_between_time = 0.1
         self.defi_run_time = 0.6+len(self.defi_text)/150
 
     def copy(self):
@@ -350,16 +352,18 @@ def display_animation_buffer(anim_buffer, scene, time_stamps):
     if len(anim_buffer) == 1:
         elem = anim_buffer[0]
         elem.individual_play(scene)
-        time_stamps.append(time_stamps[-1]+elem.individual_play_duration())
+        time_lapse = elem.individual_play_duration()+WAIT_TIME
     else:
         actions = []
         for elem in anim_buffer:
             actions += elem.get_play_actions()
         scene.play(*actions, run_time=DEFAULT_RUNTIME)
-        time_stamps.append(time_stamps[-1]+DEFAULT_RUNTIME)
+        time_lapse = DEFAULT_RUNTIME+WAIT_TIME
 
     anim_buffer.clear()
-    scene.wait(DEFAULT_WAIT_TIME)
+    # time_stamps.append(time_stamps[-1]+time_lapse)
+    time_stamps.append(scene.current_scene_time+WAIT_TIME/2)
+    scene.wait(WAIT_TIME)
 
 def add_elem_to_anim_buffer(elem, anim_buffer, scene, time_stamps):
     if elem.wait_for_input:
@@ -424,7 +428,8 @@ def get_shift_actions(line, curr_pos):
 def animate_lines(lines, scene):
     flush_index = 0 #starting line to flush when using flush
     animation_buffer = []
-    time_stamps = [0] #for the web
+    scene.wait(WAIT_TIME)
+    time_stamps = [WAIT_TIME/2] #for the web
     curr_pos = get_top_left_pos()
     for line in lines:
         #scene.play(Write(curr_pos))
@@ -455,8 +460,12 @@ def animate_lines(lines, scene):
                     shift_actions += get_shift_actions(lines[i], curr_pos)
                     i += 1
                 scene.play(*fade_out_actions, *shift_actions, run_time=FLUSH_RUNTIME)
-                time_stamps.append(time_stamps[-1]+FLUSH_RUNTIME)
+                time_lapse = FLUSH_RUNTIME+FLUSH_WAIT_TIME
+                # time_stamps.append(time_stamps[-1]+time_lapse)
+                time_stamps.append(scene.current_scene_time+FLUSH_WAIT_TIME/2)
+
                 scene.wait(FLUSH_WAIT_TIME)
+
             else:
                 sys.exit("unknown command")
     display_animation_buffer(animation_buffer, scene, time_stamps) #leftover stuff
@@ -486,8 +495,9 @@ class Sanim(Scene):
         print("finished parsing")
         time_stamps = animate_lines(lines, self)
         source_folder = get_sanim_source_dir()
-        web_info_file = os.path.join(source_folder,'time_stamps.js')
+        web_info_file = os.path.join(source_folder,SANIM_TIME_STAMPS_FILE)
         with open(web_info_file, 'w') as web_file:
             web_file.write("var timeStamps = "+str([round(stmp, 4) for stmp in time_stamps])+"\n")
         source_html = os.path.join(get_main_manim_dir(), SANIM_HTML_FILE)
-        shutil.copy(source_html, source_folder)
+        dest_html = os.path.join(source_folder, SANIM_LOCAL_HTML_FILE)
+        shutil.copyfile(source_html, dest_html)

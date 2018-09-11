@@ -3,6 +3,7 @@ import inspect
 import itertools as it
 import numpy as np
 import os
+import pdb
 import random
 import shutil
 import subprocess as sp
@@ -455,6 +456,7 @@ class Scene(Container):
                 raise EndSceneEarlyException()
 
     def play(self, *args, **kwargs):
+        # print('gonna play:')
         if len(args) == 0:
             warnings.warn("Called Scene.play with no animations")
             return
@@ -504,6 +506,7 @@ class Scene(Container):
         return []
 
     def wait(self, duration=DEFAULT_WAIT_TIME):
+        # print('gonna wait:')
         if self.should_continually_update():
             total_time = 0
             for t in self.get_time_progression(duration):
@@ -547,6 +550,7 @@ class Scene(Container):
             return
         self.current_scene_time += len(frames) * self.frame_duration
         if self.write_to_movie:
+            # print('adding ',len(frames),' frames')
             for frame in frames:
                 if self.save_pngs:
                     self.save_image(
@@ -590,7 +594,7 @@ class Scene(Container):
             extension = self.movie_file_extension
         if name is None:
             if in_sanim_mode():
-                name = "vid%d" % (self.camera.pixel_height)
+                name = SANIM_VIDEO_FILE
             else:
                 name = self.name
         file_path = os.path.join(directory, name)
@@ -600,7 +604,7 @@ class Scene(Container):
 
     def open_movie_pipe(self):
         if in_sanim_mode():
-            name = "vid%d" % (self.camera.pixel_height)
+            name = SANIM_VIDEO_FILE
         else:
             name = str(self)
         file_path = self.get_movie_file_path(name)

@@ -1,8 +1,28 @@
 import os
 import numpy as np
 
+#this file acts as a flag to differenciate between manim and sanim mode
+#if the -x option is not present, the file will be empty, and manim works as usual.
+#otherwise: 1) -x should be followed by a sanim source file, 2) the file will be written
+#into this document, 3) we are in sanim mode, 4) all the sanim-related files will
+#appear in the same folder as the sanim source file
 SANIM_AUX_FILE = "sanim_source.txt"
+
+#html for the web presentation of sanim (in the main manim dir)
 SANIM_HTML_FILE = "sanim_web.html"
+
+#copy of sanim_web.html in the sanim directory so that it uses the
+#sanim files for that sanim presentation. the name change is as a
+#reminder not to edit the file, as it is overwritten each time with
+#the latest version of sanim_web.html
+SANIM_LOCAL_HTML_FILE = "sanim_web_COPY.html"
+SANIM_VIDEO_FILE = "vid" #.mp4 extension is added automatically
+#time_stamps for the web manual transitions
+SANIM_TIME_STAMPS_FILE = "time_stamps.js"
+
+
+
+
 env_MEDIA_DIR = None
 MEDIA_DIR = "#ERROR#"
 
