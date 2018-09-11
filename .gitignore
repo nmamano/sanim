@@ -13,3 +13,11 @@ __pycache__/
 README.md
 requirements.txt
 files/
+
+presentations/*/vid.mp4
+presentations/*/time_stamps.js
+presentations/*/sanim_web_COPY.html
+presentations/*/pic.png
+sanim_source.txt
+
+

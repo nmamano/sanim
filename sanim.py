@@ -352,16 +352,14 @@ def display_animation_buffer(anim_buffer, scene, time_stamps):
     if len(anim_buffer) == 1:
         elem = anim_buffer[0]
         elem.individual_play(scene)
-        time_lapse = elem.individual_play_duration()+WAIT_TIME
     else:
         actions = []
         for elem in anim_buffer:
             actions += elem.get_play_actions()
         scene.play(*actions, run_time=DEFAULT_RUNTIME)
-        time_lapse = DEFAULT_RUNTIME+WAIT_TIME
 
     anim_buffer.clear()
-    # time_stamps.append(time_stamps[-1]+time_lapse)
+
     time_stamps.append(scene.current_scene_time+WAIT_TIME/2)
     scene.wait(WAIT_TIME)
 
@@ -460,10 +458,8 @@ def animate_lines(lines, scene):
                     shift_actions += get_shift_actions(lines[i], curr_pos)
                     i += 1
                 scene.play(*fade_out_actions, *shift_actions, run_time=FLUSH_RUNTIME)
-                time_lapse = FLUSH_RUNTIME+FLUSH_WAIT_TIME
-                # time_stamps.append(time_stamps[-1]+time_lapse)
-                time_stamps.append(scene.current_scene_time+FLUSH_WAIT_TIME/2)
 
+                time_stamps.append(scene.current_scene_time+FLUSH_WAIT_TIME/2)
                 scene.wait(FLUSH_WAIT_TIME)
 
             else:
