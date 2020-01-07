@@ -12,7 +12,7 @@ The presentation is displayed in a browser, and the user can move forward and ba
 
 # Demo
 
-The following sanim source generates [this animation](https://nmamano.com/sanim/index.html). In the animation, use the left arrow to advance and the right arrow to go back. (If the demo does not work, [here](demo.mp4) is the raw video without the advance/go back features.)
+The following sanim source generates [this animation](http://nmamano.com/sanim/index.html). In the animation, use the left arrow to advance and the right arrow to go back. (If the demo does not work, [here](demo.mp4) is the raw video without the advance/go back features.)
 
 ```
 TITLE Complexity Theory\textemdash  Lecture 1: Introduction
