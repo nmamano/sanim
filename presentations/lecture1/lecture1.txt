@@ -2,29 +2,33 @@ TITLE Complexity Theory\textemdash  Lecture 1: Introduction
 
 DEF "In a nutshell" how to classify \textit{\textbf{problems}} according to how \textit{\textbf{hard}} they are to solve by computer \textit{\textbf{programs}}.
 
-DEF "In this video" we define ``problem'', ``hard'', and ``program'' mathematically so that we can prove stuff.
+DEF "In this lecture" define ``problem'', ``hard'', and ``program'' formally so that we can do mathematical proofs.
 
 - What is a \textit{\textbf{problem}}?
 
-\textbf{Instance} ; > vs ; > \textbf{General case}
-$37\times 13$ ; ; > Multiplication
-$8,2,3,6,1$ ; ; > Sorting
-
-- A \textit{\textbf{problem}} is a \textbf{function} mapping each instance to its solution.
+\textbf{Problem} ; > vs ; > \textbf{Instance}
+>Multiplication ; ; >$37\times 13$
+>Sorting ; ; >$8,2,3,6,1$
 
 FLUSH 4
 
-\textbf{Problem} ; ; > \textbf{Instance} ; ; > \textbf{Solution}
-Multiplication ; ; >$37\times 13$ ; >$\longrightarrow$ ; >$481$
+- A \textit{\textbf{problem}} is a \textbf{function} mapping each instance to its solution.
+
+>\textbf{Problem} ; ; > \textbf{Instance} ; ; > \textbf{Solution}
+>Multiplication ; ; >$37\times 13$ ; >$\longrightarrow$ ; >$481$
 >Sorting ; ; > $8,2,3,6,1$ ;  >$\longrightarrow$ ; > $1,2,3,6,8$
-Median ; ; > $8,2,3,6,1$ ;  $\longrightarrow$ ; > $3$
+>Median ; ; > $8,2,3,6,1$ ;  >$\longrightarrow$ ; > $3$
 
 - We focus on \textit{\textbf{decision problems}}: problems where the solution is YES$/$NO.
-FLUSH 8
+
+FLUSH 12
+
 \textbf{Decision Problem} ; ; > \textbf{Instance} ; ; > \textbf{Solution}
-Prime testing ; ; $9$ ; >$\longrightarrow$ ; > NO
+>Prime testing ; ; >$9$ ; >$\longrightarrow$ ; > NO
 ;; >$11$; >$\longrightarrow$; >YES
+
 DEF "In general" a decision problem asks ``does the instance have $X$ property?''
+
 - We assume that the instance is just a (finite) \textbf{binary string}.
-FLUSH 14
+
 Mathematical object ; >vs ; >Binary representation
