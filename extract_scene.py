@@ -10,11 +10,11 @@ import os
 import subprocess as sp
 import traceback
 
-from constants import *
+from manim_engine.constants import *
 
-from scene.scene import Scene
-from utils.sounds import play_error_sound
-from utils.sounds import play_finish_sound
+from manim_engine.scene.scene import Scene
+from manim_engine.utils.sounds import play_error_sound
+from manim_engine.utils.sounds import play_finish_sound
 
 HELP_MESSAGE = """
    Usage:
