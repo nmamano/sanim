@@ -1,0 +1,14 @@
+Lectures:
+
+1: Introduction to Complexity Theory
+2: Diagonalization: comparing infinites
+3: Non-constructive proof that there exist unrecognizable problems
+4: The Halting Problem: examples of undecidable and unrecognizable problems
+5: Reductions: how to prove that a problem is undecidable
+6: The PCP problem
+7: Time and Space Complexity classes
+8: The NP class: certificate vs non-determism definitions
+9: Reductions, hardness and completeness.
+10: P vs NP.
+11: Savitch's Theorem
+12: Overview of the complexity field.
