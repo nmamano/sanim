@@ -474,8 +474,10 @@ def input_to_lines(source_file):
     i = 1
     for line in input_lines:
         if line == "":
-            sys.exit("empty line "+i)
-        res.append(InputLine(i, line))
+            pass
+            # sys.exit("empty line "+str(i))
+        else:
+            res.append(InputLine(i, line))
         i += 1
     return res
 
