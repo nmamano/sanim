@@ -498,4 +498,12 @@ class Sanim(Scene):
             web_file.write("var timeStamps = "+str([round(stmp, 4) for stmp in time_stamps])+"\n")
         source_html = os.path.join(get_main_manim_dir(), SANIM_HTML_FILE)
         dest_html = os.path.join(source_folder, SANIM_LOCAL_HTML_FILE)
-        shutil.copyfile(source_html, dest_html)
+        try:
+            shutil.copy2(source_html, dest_html)
+        except Exception as e:
+            print(f"Error copying file: {e}")
+            try:
+                # Attempt to clean up the temporary file
+                os.remove(dest_html)
+            except Exception as cleanup_e:
+                print(f"Error cleaning up temporary file: {cleanup_e}")

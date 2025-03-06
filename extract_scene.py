@@ -200,14 +200,26 @@ def handle_scene(scene, **config):
             commands.append("-R")
 
         if config["show_last_frame"]:
-            commands.append(scene.get_image_file_path())
+            file_path = scene.get_image_file_path()
         else:
-            commands.append(scene.get_movie_file_path())
+            file_path = scene.get_movie_file_path()
+            
+        print(f"Debug - Attempting to open file: {file_path}")
+        print(f"Debug - File exists: {os.path.exists(file_path)}")
+        print(f"Debug - File directory exists: {os.path.exists(os.path.dirname(file_path))}")
+        
+        commands.append(file_path)
+        print(f"Debug - Command to execute: {' '.join(commands)}")
 
-        # commands.append("-g")
-        FNULL = open(os.devnull, 'w')
-        sp.call(commands, stdout=FNULL, stderr=sp.STDOUT, shell=True)
-        FNULL.close()
+        try:
+            FNULL = open(os.devnull, 'w')
+            result = sp.call(commands, stdout=FNULL, stderr=sp.STDOUT, shell=True)
+            FNULL.close()
+            if result != 0:
+                print(f"Debug - Command failed with exit code: {result}")
+        except Exception as e:
+            print(f"Debug - Error executing command: {e}")
+            print(f"Debug - Command was: {' '.join(commands)}")
 
     if config["quiet"]:
         sys.stdout.close()

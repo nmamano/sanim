@@ -1,7 +1,13 @@
 import os
+import platform
 
 
 def play_chord(*nums):
+    # Skip playing sounds on Windows since 'play' command isn't available
+    if platform.system() == "Windows":
+        print("Debug - Skipping sound on Windows platform")
+        return
+        
     commands = [
         "play",
         "-n",
@@ -16,9 +22,10 @@ def play_chord(*nums):
         "> /dev/null"
     ]
     try:
+        print(f"Debug - Attempting to play sound: {' '.join(commands)}")
         os.system(" ".join(commands))
-    except:
-        pass
+    except Exception as e:
+        print(f"Debug - Error playing sound: {e}")
 
 
 def play_error_sound():

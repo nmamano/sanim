@@ -1,4 +1,3 @@
-
 import inspect
 import itertools as it
 import numpy as np
@@ -601,6 +600,10 @@ class Scene(Container):
         return file_path
 
     def open_movie_pipe(self):
+        if hasattr(self, 'writing_process') and self.writing_process is not None:
+            print("Warning: Movie pipe was already open")
+            return
+
         if in_sanim_mode():
             name = SANIM_VIDEO_FILE
         else:
@@ -608,11 +611,25 @@ class Scene(Container):
         file_path = self.get_movie_file_path(name)
         temp_file_path = file_path.replace(name, name + "Temp")
         print("Writing to %s" % temp_file_path)
+        print(f"Debug - File paths:")
+        print(f"  file_path: {file_path}")
+        print(f"  temp_file_path: {temp_file_path}")
+        print(f"  file_path exists: {os.path.exists(file_path)}")
+        print(f"  temp_file_path exists: {os.path.exists(temp_file_path)}")
+        print(f"  file_path dir exists: {os.path.exists(os.path.dirname(file_path))}")
+        print(f"  temp_file_path dir exists: {os.path.exists(os.path.dirname(temp_file_path))}")
         self.args_to_rename_file = (temp_file_path, file_path)
+
+        # Ensure the output directory exists
+        os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
 
         fps = int(1 / self.frame_duration)
         height = self.camera.get_pixel_height()
         width = self.camera.get_pixel_width()
+
+        # Convert Windows path to forward slashes for FFmpeg and ensure it's not truncated
+        ffmpeg_temp_path = os.path.abspath(temp_file_path).replace('\\', '/')
+        print(f"Debug - FFmpeg temp path: {ffmpeg_temp_path}")
 
         command = [
             FFMPEG_BIN,
@@ -636,17 +653,73 @@ class Scene(Container):
                 '-vcodec', 'libx264',
                 '-pix_fmt', 'yuv420p',
             ]
-        command += [temp_file_path]
-        # self.writing_process = sp.Popen(command, stdin=sp.PIPE, shell=True)
-        self.writing_process = sp.Popen(command, stdin=sp.PIPE)
+        command += [ffmpeg_temp_path]
+        print(f"Debug - FFmpeg command: {' '.join(command)}")
+        
+        try:
+            self.writing_process = sp.Popen(command, stdin=sp.PIPE)
+            print("Debug - FFmpeg process started successfully")
+        except Exception as e:
+            print(f"Error starting FFmpeg process: {e}")
+            raise
 
     def close_movie_pipe(self):
-        self.writing_process.stdin.close()
-        self.writing_process.wait()
-        if os.name == 'nt':
-            shutil.move(*self.args_to_rename_file)
-        else:
-            os.rename(*self.args_to_rename_file)
+        if not hasattr(self, 'writing_process') or self.writing_process is None:
+            print("Warning: Movie pipe was not open")
+            return
+
+        try:
+            print("Debug - Closing FFmpeg process")
+            self.writing_process.stdin.close()
+            self.writing_process.wait()
+            print("Debug - FFmpeg process finished")
+        except Exception as e:
+            print(f"Error during FFmpeg process: {e}")
+            raise
+
+        try:
+            if os.name == 'nt':
+                # On Windows, ensure paths are absolute and use proper separators
+                src, dst = self.args_to_rename_file
+                src = os.path.abspath(src)
+                dst = os.path.abspath(dst)
+                print(f"Debug - File operations:")
+                print(f"  Source path: {src}")
+                print(f"  Destination path: {dst}")
+                print(f"  Source exists: {os.path.exists(src)}")
+                print(f"  Destination exists: {os.path.exists(dst)}")
+                print(f"  Source dir exists: {os.path.exists(os.path.dirname(src))}")
+                print(f"  Destination dir exists: {os.path.exists(os.path.dirname(dst))}")
+                
+                # If destination exists, try to remove it first
+                if os.path.exists(dst):
+                    try:
+                        os.remove(dst)
+                    except Exception as e:
+                        print(f"Error removing existing destination file: {e}")
+                
+                # Ensure destination directory exists
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                
+                # Use shutil.copy2 instead of move to handle potential permission issues
+                print(f"Debug - Copying file from {src} to {dst}")
+                shutil.copy2(src, dst)
+                
+                # Try to remove the temp file
+                try:
+                    print(f"Debug - Removing temp file: {src}")
+                    os.remove(src)
+                except Exception as e:
+                    print(f"Error removing temp file: {e}")
+            else:
+                os.rename(*self.args_to_rename_file)
+        except Exception as e:
+            print(f"Error during file operation: {e}")
+            print(f"Source: {self.args_to_rename_file[0]}")
+            print(f"Destination: {self.args_to_rename_file[1]}")
+            raise
+        finally:
+            self.writing_process = None
 
 
 class EndSceneEarlyException(Exception):

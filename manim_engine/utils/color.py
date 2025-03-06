@@ -21,7 +21,8 @@ def color_to_rgb(color):
 
 
 def color_to_rgba(color, alpha=1):
-    return np.array([*color_to_rgb(color), alpha])
+    rgb = color_to_rgb(color)
+    return np.array([rgb[0], rgb[1], rgb[2], alpha])
 
 
 def rgb_to_color(rgb):
