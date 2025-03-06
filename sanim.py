@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from manim_engine.big_ol_pile_of_manim_imports import *
+from custom_animation import CustomWrite
 import shutil
 
 BACKGROUND = "#e6f3ff"
@@ -14,7 +15,7 @@ FLUSH_RUNTIME = 0.8
 WAIT_TIME = 0.2
 FLUSH_WAIT_TIME = 0.2 #0.8 #same
 #lines starting with this add text to the presentation
-CONTENT_KEYWORDS = {"TITLE", "DEF", "-", "PLAIN", "IMAGE"}
+CONTENT_KEYWORDS = {"TITLE", "DEF", "-", "PLAIN", "IMAGE", "TERM"}
 
 #lines starting with this give instructions about how to display the presentation
 COMMAND_KEYWORDS = {"FLUSH"}
@@ -22,6 +23,7 @@ COMMAND_KEYWORDS = {"FLUSH"}
 #modifiers are the only keywords that can appear before other keywords
 #(and nowhere else)
 MODIFIER_SYMBOLS = {">", "^"} #^ not implemented yet
+
 
 
 #a line of text plus its line number in the source file
@@ -44,6 +46,8 @@ class InputLine:
                 self.output_content_elems.append(BulletElem(elem))
             elif elem.keyword == "DEF":
                 self.output_content_elems.append(DefElem(elem))
+            elif elem.keyword == "TERM":
+                self.output_content_elems.append(TermElem(elem))
             elif elem.keyword == "IMAGE":
                 self.output_content_elems.append(ImageElem(elem))
 
@@ -139,10 +143,10 @@ class TitleElem(OutputElem):
         return TitleElem(self.input_elem)
 
     def individual_play(self, scene):
-        scene.play(Write(self.text), run_time=self.run_time)
+        scene.play(CustomWrite(self.text), run_time=self.run_time)
 
     def get_play_actions(self):
-        return [Write(self.text)]
+        return [CustomWrite(self.text)]
 
     def individual_play_duration(self):
         return self.run_time
@@ -191,12 +195,12 @@ class PlainElem(OutputElem):
     def individual_play(self, scene):
         if self.is_empty:
             return
-        scene.play(Write(self.text), run_time=self.run_time)
+        scene.play(CustomWrite(self.text), run_time=self.run_time)
 
     def get_play_actions(self):
         if self.is_empty:
             return []
-        return [Write(self.text)]
+        return [CustomWrite(self.text)]
 
     def individual_play_duration(self):
         return self.run_time
@@ -242,10 +246,10 @@ class BulletElem(OutputElem):
         return BulletElem(self.input_elem)
 
     def individual_play(self, scene):
-        scene.play(Write(self.text), run_time=self.run_time)
+        scene.play(CustomWrite(self.text), run_time=self.run_time)
 
     def get_play_actions(self):
-        return [Write(self.text)]
+        return [CustomWrite(self.text)]
 
     def individual_play_duration(self):
         return self.run_time
@@ -271,7 +275,6 @@ class BulletElem(OutputElem):
 
     def get_fade_out_actions(self):
         return [FadeOut(self.text)]
-
 class DefElem(OutputElem):
     def __init__(self, input_elem):
         super().__init__(input_elem)
@@ -304,12 +307,12 @@ class DefElem(OutputElem):
         return DefElem(self.input_elem)
 
     def individual_play(self, scene):
-        scene.play(Write(self.term), run_time=self.term_run_time)
+        scene.play(CustomWrite(self.term), run_time=self.term_run_time)
         scene.wait(self.in_between_time)
-        scene.play(Write(self.defi), run_time=self.defi_run_time)
+        scene.play(CustomWrite(self.defi), run_time=self.defi_run_time)
 
     def get_play_actions(self):
-        return [Write(self.term), Write(self.defi)]
+        return [CustomWrite(self.term), CustomWrite(self.defi)]
 
     def individual_play_duration(self):
         return self.term_run_time + self.in_between_time + self.defi_run_time
@@ -347,6 +350,62 @@ class DefElem(OutputElem):
 
     def get_fade_out_actions(self):
         return [FadeOut(self.term), FadeOut(self.defi)]
+
+class TermElem(OutputElem):
+    def __init__(self, input_elem):
+        super().__init__(input_elem)
+        content = input_elem.content[:]
+        #parse content to extract term
+        content = content.lstrip() #removes leading whitespace
+        if content[0] != '"':
+            sys.exit('invalid use of TERM. syntax: TERM "term"')
+        content = content[1:]
+        if not '"' in content:
+            sys.exit('invalid use of TERM. syntax: TERM "term"')
+        self.term_text = content[:content.find('"')]
+        if self.term_text == '':
+            sys.exit('empty term in TERM')
+
+        self.term = TextMobject('\\textbf{'+self.term_text+'}',background_stroke_color=BACKGROUND, alignment="")
+        self.term.set_color(DEF_COLOR)
+
+        self.term_run_time = 0.5
+
+    def copy(self):
+        return TermElem(self.input_elem)
+
+    def individual_play(self, scene):
+        scene.play(CustomWrite(self.term), run_time=self.term_run_time)
+
+    def get_play_actions(self):
+        return [CustomWrite(self.term)]
+
+    def individual_play_duration(self):
+        return self.term_run_time
+
+    def position_center_at(self, pos_mobj):
+        self.term.move_to(pos_mobj)
+
+    def position_left_aligned(self, pos_mobj):
+        self.term.move_to(pos_mobj)
+        self.term.to_edge(LEFT)
+
+    def get_shift_center_at_actions(self, pos_mobj):
+        pos_term = TextMobject(self.term_text, alignment = "") #used for positioning
+        pos_term.move_to(pos_mobj)
+        return [ApplyMethod(self.term.move_to, pos_term)]
+
+    def get_shift_left_aligned_actions(self, pos_mobj):
+        pos_term = TextMobject(self.term_text, alignment = "") #used for positioning
+        pos_term.move_to(pos_mobj)
+        pos_term.to_edge(LEFT)
+        return [ApplyMethod(self.term.move_to, pos_term)]
+
+    def get_bottom_right_mobject(self):
+        return self.term
+
+    def get_fade_out_actions(self):
+        return [FadeOut(self.term)]
 
 class ImageElem(OutputElem):
     def __init__(self, input_elem):
@@ -514,10 +573,12 @@ def animate_lines(lines, scene):
     scene.wait(WAIT_TIME)
     time_stamps = [WAIT_TIME/2] #for the web
     curr_pos = get_top_left_pos()
-    for line in lines:
-        #scene.play(Write(curr_pos))
+    i = 0
+    while i < len(lines):
+        line = lines[i]
         if line.is_content_line():
             animate_content_line(line, curr_pos, animation_buffer, scene, time_stamps)
+            i += 1
         else:
             elems = line.input_elems
             if len(elems) == 0:
@@ -527,8 +588,17 @@ def animate_lines(lines, scene):
             elem = elems[0]
             if elem.keyword == 'FLUSH':
                 display_animation_buffer(animation_buffer, scene, time_stamps) #leftover stuff
-                flush_line_num = int(elem.content)
                 curr_line_num = line.line_num
+                
+                # If content is empty or whitespace, flush everything up to current line
+                # and automatically display the next line
+                if not elem.content.strip():
+                    flush_line_num = curr_line_num
+                    auto_display_next = True
+                else:
+                    flush_line_num = int(elem.content)
+                    auto_display_next = False
+                
                 if flush_line_num > curr_line_num:
                     sys.exit("cannot flush beyond the current line")
                 fade_out_actions = []
@@ -538,15 +608,23 @@ def animate_lines(lines, scene):
                     flush_index += 1
                 curr_pos = get_top_left_pos()
                 shift_actions = []
-                i = flush_index
-                while lines[i].line_num < curr_line_num:
-                    shift_actions += get_shift_actions(lines[i], curr_pos)
-                    i += 1
+                j = flush_index
+                while lines[j].line_num < curr_line_num:
+                    shift_actions += get_shift_actions(lines[j], curr_pos)
+                    j += 1
                 scene.play(*fade_out_actions, *shift_actions, run_time=FLUSH_RUNTIME)
 
                 time_stamps.append(scene.current_scene_time+FLUSH_WAIT_TIME/2)
                 scene.wait(FLUSH_WAIT_TIME)
 
+                # If auto-displaying next line, render it now
+                if auto_display_next and i + 1 < len(lines):
+                    next_line = lines[i + 1]
+                    if next_line.is_content_line():
+                        animate_content_line(next_line, curr_pos, animation_buffer, scene, time_stamps)
+                    i += 2  # Skip both the FLUSH and the displayed line
+                else:
+                    i += 1
             else:
                 sys.exit("unknown command")
     display_animation_buffer(animation_buffer, scene, time_stamps) #leftover stuff
