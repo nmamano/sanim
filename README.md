@@ -1,4 +1,3 @@
-
 # About
 
 Sanim (Slide ANIMation) is both a markup language for preparing presentations, and a parser for this language that produces the presentations. The transition between slides is animated using Manim.
@@ -70,32 +69,38 @@ Every non-empty line of the input file corresponds to an "item" of the presentat
 Items can be of several types. The first word the line determines the type. By default, the rest of the input line is parsed as latex (it can include $ $, \textit{}, \textbf{}, and \underline{ }).
 
 #### Item types:
+
 - TITLE: bigger font, underline
 - \-: adds text with a bullet point
 - <nothing>: adds plain text
 - DEF "X": Definition: bullet point with X highlighted, followed by ':' and the text
+- IMAGE path size: Displays an image from the specified path. Optionally accepts a size multiplier (default 1.0) to adjust the image size. For example: "IMAGE img.png 1.5" makes the image 50% larger.
 
 #### Special lines:
+
 - FLUSH X: removes all the lines before line X, shifts remaining lines to the top
 
 #### Special symbols:
+
 - ";": To insert several items spaced evenly in the same line, separate them by ;
-(can be used to center a single item by surrounding it by ";")
+  (can be used to center a single item by surrounding it by ";")
 - "\>": when it is the first char of an item, the line displays together with the previous line, without waiting for user input.
 
 (The features listed here may be outdated)
 
 # Todo
+
 - add shortcuts for and \textbf \textit
 - smoother play backwards
 - modify the Manim tex template depending on the browser's width, so that it adds line breaks at the appropriate points
 - try different fonts and animations to distinguish the style from Manim
 - add command to color specific words (\color{}{} not working)
 - add labels for flushing instead of line numbers
-- Add an IMAGE item.
 - fix that DEF item shifts slightly to the right when flushing.
 - reduce width of title underline
+
 #### Ideas for features
+
 - pin functionality for lines that don't get flushed (using symbol "^")
 - Automatic flush: once there is no more space, previous lines scroll up until they disappear (without cutting lines in half).
 - Integration with native Manim animations.

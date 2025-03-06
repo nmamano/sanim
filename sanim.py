@@ -14,7 +14,7 @@ FLUSH_RUNTIME = 0.8
 WAIT_TIME = 0.2
 FLUSH_WAIT_TIME = 0.2 #0.8 #same
 #lines starting with this add text to the presentation
-CONTENT_KEYWORDS = {"TITLE", "DEF", "-", "PLAIN"}
+CONTENT_KEYWORDS = {"TITLE", "DEF", "-", "PLAIN", "IMAGE"}
 
 #lines starting with this give instructions about how to display the presentation
 COMMAND_KEYWORDS = {"FLUSH"}
@@ -44,6 +44,8 @@ class InputLine:
                 self.output_content_elems.append(BulletElem(elem))
             elif elem.keyword == "DEF":
                 self.output_content_elems.append(DefElem(elem))
+            elif elem.keyword == "IMAGE":
+                self.output_content_elems.append(ImageElem(elem))
 
     def is_content_line(self):
         return self.output_content_elems != []
@@ -345,6 +347,89 @@ class DefElem(OutputElem):
 
     def get_fade_out_actions(self):
         return [FadeOut(self.term), FadeOut(self.defi)]
+
+class ImageElem(OutputElem):
+    def __init__(self, input_elem):
+        super().__init__(input_elem)
+        # Split content into path and optional size multiplier
+        content_parts = input_elem.content.strip().split()
+        if len(content_parts) == 0:
+            sys.exit('empty image path')
+        
+        image_path = content_parts[0]
+        # Default size multiplier is 1.0
+        self.size_multiplier = 1.0
+        
+        # If size multiplier is provided, parse it
+        if len(content_parts) > 1:
+            try:
+                self.size_multiplier = float(content_parts[1])
+            except ValueError:
+                sys.exit('invalid size multiplier - must be a number')
+        
+        # Load the image and scale it
+        self.image = ImageMobject(image_path)
+        self.image.scale(self.size_multiplier)
+        
+        # Runtime based on a constant value
+        self.run_time = 0.8
+    
+    def copy(self):
+        return ImageElem(self.input_elem)
+    
+    def individual_play(self, scene):
+        scene.play(FadeIn(self.image), run_time=self.run_time)
+    
+    def get_play_actions(self):
+        return [FadeIn(self.image)]
+    
+    def individual_play_duration(self):
+        return self.run_time
+    
+    def position_center_at(self, pos_mobj):
+        self.image.move_to(pos_mobj)
+    
+    def position_left_aligned(self, pos_mobj):
+        # First align the top of the image with the current position
+        # This ensures it appears below previous content, not overlapping
+        self.image.move_to(pos_mobj)
+        
+        # Align the top edge of the image with the position
+        # This is crucial to avoid overlapping with previous content
+        current_top = self.image.get_top()
+        target_top = pos_mobj.get_center() + UP * 0.1  # Small buffer
+        self.image.shift(target_top - current_top)
+        
+        # Center horizontally in the frame
+        center_x = ORIGIN[0]  # X-coordinate of the center of the screen
+        current_x = self.image.get_center()[0]  # Current X-coordinate of the image
+        self.image.shift(RIGHT * (center_x - current_x))
+    
+    def get_shift_center_at_actions(self, pos_mobj):
+        return [ApplyMethod(self.image.move_to, pos_mobj)]
+    
+    def get_shift_left_aligned_actions(self, pos_mobj):
+        # Create a target position object for positioning
+        temp_image = self.image.copy()  # Used only for positioning
+        
+        # First align the top with current position (to avoid overlap)
+        temp_image.move_to(pos_mobj)
+        current_top = temp_image.get_top()
+        target_top = pos_mobj.get_center() + UP * 0.1  # Small buffer
+        temp_image.shift(target_top - current_top)
+        
+        # Center horizontally in the frame
+        center_x = ORIGIN[0]  # X-coordinate of the center of the screen
+        current_x = temp_image.get_center()[0]  # Current X-coordinate
+        temp_image.shift(RIGHT * (center_x - current_x))
+        
+        return [ApplyMethod(self.image.move_to, temp_image)]
+    
+    def get_bottom_right_mobject(self):
+        return self.image
+    
+    def get_fade_out_actions(self):
+        return [FadeOut(self.image)]
 
 def display_animation_buffer(anim_buffer, scene, time_stamps):
     if len(anim_buffer) == 0:
