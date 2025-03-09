@@ -1,5 +1,4 @@
-Everything in manim_engine/ and the file extract_scene.py are originally from 3Blue1Brown under the license below.
-
+Everything in manim_engine/ and some bits of sanim.py (based on extract_scene.py) are originally from 3Blue1Brown under the license below.
 
 MIT License
 
