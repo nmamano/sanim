@@ -58,7 +58,7 @@ Mathematical object ; >vs ; >Binary representation
 
 This file uses Sanim syntax.
 
-2. Run: `python extract_scene.py sanim.py Sanim -x presentations/my_presentation/my_presentation.txt`
+2. Run: `./sanim.py presentations/my_presentation/my_presentation.txt`
 
 Add -l for fast render/lower quality. Recommended for fast iteration.
 
