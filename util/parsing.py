@@ -2,21 +2,13 @@
 Input parsing utilities for Sanim.
 """
 
+from manim_engine.big_ol_pile_of_manim_imports import TextMobject, TOP, LEFT, MED_SMALL_BUFF, DOWN
+from util.exceptions import SanimParseError
+
 # Input syntax definitions
 CONTENT_KEYWORDS = {"TITLE", "DEF", "-", "PLAIN", "IMAGE", "TERM"}
 COMMAND_KEYWORDS = {"FLUSH"}
 MODIFIER_SYMBOLS = {">", "^"}  # ^ is reserved for future use
-
-# Exception classes
-class SanimParseError(Exception):
-    """Exception raised for errors in parsing the input file."""
-    pass
-
-
-class SanimRenderError(Exception):
-    """Exception raised for errors in rendering the presentation."""
-    pass
-
 
 class InputParser:
     """
@@ -187,7 +179,6 @@ class ElementPosition:
     
     def _get_top_left_position(self):
         """Create a mobject positioned at the top-left corner of the screen."""
-        from manim_engine.big_ol_pile_of_manim_imports import TextMobject, TOP, LEFT, MED_SMALL_BUFF
         position = TextMobject("aux")  # Auxiliary object used only for positioning
         position.to_corner(TOP+LEFT, buff=MED_SMALL_BUFF)
         return position
@@ -207,7 +198,6 @@ class ElementPosition:
         Args:
             element: The element that was just added
         """
-        from manim_engine.big_ol_pile_of_manim_imports import DOWN
         # Move to the bottom of the element
         self.position.move_to(element.get_bottom_position().get_edge_center(DOWN))
         # Add some vertical spacing

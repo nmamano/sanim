@@ -1,7 +1,11 @@
+"""
+Custom animation classes for Sanim.
+"""
+
 from manim_engine.big_ol_pile_of_manim_imports import *
 
-# Custom animation for text with a unique reveal style
 class CustomWrite(DrawBorderThenFill):
+    """Custom animation for text with a unique reveal style."""
     CONFIG = {
         "rate_func": lambda t: smooth(1.5 * t - 0.5 * np.sin(t * np.pi)),
         "submobject_mode": "lagged_start",
@@ -29,4 +33,4 @@ class CustomWrite(DrawBorderThenFill):
         if num_subs < 15:
             self.run_time = 1.2  # Slightly slower for emphasis
         else:
-            self.run_time = 2.2
+            self.run_time = 2.2 

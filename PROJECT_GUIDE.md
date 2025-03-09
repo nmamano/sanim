@@ -6,6 +6,7 @@ It can help AI assistants understand and modify Sanim code.
 
 ## Directory Structure
 
+```
 sanim/
 ├── manim_engine/ # Core manim engine components
 │ ├── animation/
@@ -14,19 +15,19 @@ sanim/
 │ └── ... (other manim components)
 │
 ├── animations/ # Reusable custom animations
-│ ├── **init**.py
+│ ├── __init__.py
 │ ├── custom_animation.py
 │ └── special_effects.py
 │
 ├── elements/ # Element types
-│ ├── **init**.py
+│ ├── __init__.py
 │ ├── base.py # Base OutputElement class
 │ ├── text.py # Text-based elements
 │ ├── media.py # Image and video elements
 │ └── special.py # Custom element types
 │
 ├── util/ # Utility functions
-│ ├── **init**.py
+│ ├── __init__.py
 │ ├── parsing.py # Input parsing utilities
 │ ├── positioning.py # Element positioning utilities
 │ └── rendering.py # Rendering utilities
@@ -45,6 +46,7 @@ sanim/
 │
 ├── SANIM_README.md # Main documentation
 └── AI_GUIDE.md # Guide for AI assistants
+```
 
 ## Architecture
 
@@ -186,7 +188,7 @@ CONTENT_KEYWORDS = {"TITLE", "DEF", "-", "PLAIN", "IMAGE", "TERM", "CODE"}
 
 ### Adding New Animations
 
-To change how elements are animated, you can modify the `CustomWrite` class in `custom_animation.py` or create new animation classes.
+To change how elements are animated, you can modify the `CustomWrite` class in `animations/custom_animation.py` or create new animation classes.
 
 When adding new animations, follow this structure:
 
@@ -218,7 +220,7 @@ DEFINITION_COLOR = "#007acc"  # Changed from "#991f00"
 
 2. **Modify the font**: Update the LaTeX template in `tex_template.tex`
 
-3. **Change animation styles**: Modify or create new animations in `custom_animation.py`
+3. **Change animation styles**: Modify or create new animations in `animations/custom_animations.py`
 
 ```python
 # Example: Create a fade-in-from-bottom animation
@@ -261,7 +263,7 @@ class FadeInFromBottom(Animation):
 ### Key Files
 
 - `sanim.py`: Main implementation file
-- `custom_animation.py`: Custom animation classes
+- `animations/custom_animation.py`: Custom animation classes
 - `extract_scene.py`: Entry point script (modified from manim)
 
 ### Implementation Notes
@@ -276,7 +278,7 @@ class FadeInFromBottom(Animation):
 
 - Font: Modified in `tex_template.tex`
 - Colors: Changed via constants at the top of `sanim.py`
-- Animation styles: Modified in `custom_animation.py`
+- Animation styles: Modified in `animations/custom_animation.py`
 
 ### Adding Commands
 

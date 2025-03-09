@@ -4,6 +4,7 @@ Media-based elements for Sanim.
 
 from manim_engine.big_ol_pile_of_manim_imports import *
 from .base import OutputElement
+from util.exceptions import SanimParseError, SanimRenderError
 
 # Constants
 BACKGROUND_COLOR = "#e6f3ff"
@@ -27,7 +28,6 @@ class ImageElement(OutputElement):
         # Split content into path and optional size multiplier
         content_parts = input_elem.content.strip().split()
         if not content_parts:
-            from util.parsing import SanimParseError
             raise SanimParseError('Empty image path')
         
         image_path = content_parts[0]
@@ -39,7 +39,6 @@ class ImageElement(OutputElement):
             try:
                 self.size_multiplier = float(content_parts[1])
             except ValueError:
-                from util.parsing import SanimParseError
                 raise SanimParseError('Invalid size multiplier - must be a number')
         
         try:
@@ -50,7 +49,6 @@ class ImageElement(OutputElement):
             # Runtime based on a constant value
             self.run_time = 0.8
         except Exception as e:
-            from sanim import SanimRenderError
             raise SanimRenderError(f"Failed to load image {image_path}: {str(e)}")
     
     def copy(self):

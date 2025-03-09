@@ -4,6 +4,8 @@ Text-based elements for Sanim.
 
 from manim_engine.big_ol_pile_of_manim_imports import *
 from .base import OutputElement
+from animations.custom_animations import CustomWrite
+from util.exceptions import SanimParseError
 
 # Constants
 DEFINITION_COLOR = "#991f00"
@@ -25,7 +27,6 @@ class TitleElement(OutputElement):
         super().__init__(input_elem)
         content = input_elem.content
         if not content:
-            from util.parsing import SanimParseError
             raise SanimParseError('Empty title')
         
         # Calculate runtime based on content length
@@ -45,12 +46,10 @@ class TitleElement(OutputElement):
     
     def individual_play(self, scene):
         """Animate the title in the scene."""
-        from sanim import CustomWrite
         scene.play(CustomWrite(self.text), run_time=self.run_time)
     
     def get_play_actions(self):
         """Get the animations to play this title."""
-        from sanim import CustomWrite
         return [CustomWrite(self.text)]
     
     def individual_play_duration(self):
@@ -126,14 +125,12 @@ class PlainTextElement(OutputElement):
     def individual_play(self, scene):
         """Animate the text in the scene."""
         if not self.is_empty:
-            from sanim import CustomWrite
             scene.play(CustomWrite(self.text), run_time=self.run_time)
     
     def get_play_actions(self):
         """Get the animations to play this text."""
         if self.is_empty:
             return []
-        from sanim import CustomWrite
         return [CustomWrite(self.text)]
     
     def individual_play_duration(self):
@@ -194,7 +191,6 @@ class BulletElement(OutputElement):
         super().__init__(input_elem)
         content = input_elem.content
         if not content:
-            from util.parsing import SanimParseError
             raise SanimParseError("Empty bullet item")
         
         # Create the bullet mobject
@@ -211,12 +207,10 @@ class BulletElement(OutputElement):
     
     def individual_play(self, scene):
         """Animate the bullet in the scene."""
-        from sanim import CustomWrite
         scene.play(CustomWrite(self.text), run_time=self.run_time)
     
     def get_play_actions(self):
         """Get the animations to play this bullet."""
-        from sanim import CustomWrite
         return [CustomWrite(self.text)]
     
     def individual_play_duration(self):
@@ -272,12 +266,10 @@ class DefinitionElement(OutputElement):
         
         # Parse term and definition
         if not content or content[0] != '"':
-            from util.parsing import SanimParseError
             raise SanimParseError('Invalid use of DEF. Syntax: DEF "term" definition')
         
         content = content[1:]
         if '"' not in content:
-            from util.parsing import SanimParseError
             raise SanimParseError('Invalid use of DEF. Syntax: DEF "term" definition')
         
         # Extract term and definition text
@@ -285,10 +277,8 @@ class DefinitionElement(OutputElement):
         self.definition_text = content[content.find('"')+1:].lstrip()
         
         if not self.term_text:
-            from util.parsing import SanimParseError
             raise SanimParseError('Empty term in DEF')
         if not self.definition_text:
-            from util.parsing import SanimParseError
             raise SanimParseError('Empty definition in DEF')
         
         # Create term and definition mobjects
@@ -317,14 +307,12 @@ class DefinitionElement(OutputElement):
     
     def individual_play(self, scene):
         """Animate the definition in the scene."""
-        from sanim import CustomWrite
         scene.play(CustomWrite(self.term), run_time=self.term_run_time)
         scene.wait(self.in_between_time)
         scene.play(CustomWrite(self.definition), run_time=self.definition_run_time)
     
     def get_play_actions(self):
         """Get the animations to play this definition."""
-        from sanim import CustomWrite
         return [CustomWrite(self.term), CustomWrite(self.definition)]
     
     def individual_play_duration(self):
@@ -402,19 +390,16 @@ class TermElement(OutputElement):
         
         # Parse term
         if not content or content[0] != '"':
-            from util.parsing import SanimParseError
             raise SanimParseError('Invalid use of TERM. Syntax: TERM "term"')
         
         content = content[1:]
         if '"' not in content:
-            from util.parsing import SanimParseError
             raise SanimParseError('Invalid use of TERM. Syntax: TERM "term"')
         
         # Extract term text
         self.term_text = content[:content.find('"')]
         
         if not self.term_text:
-            from util.parsing import SanimParseError
             raise SanimParseError('Empty term in TERM')
         
         # Create term mobject
@@ -434,12 +419,10 @@ class TermElement(OutputElement):
     
     def individual_play(self, scene):
         """Animate the term in the scene."""
-        from sanim import CustomWrite
         scene.play(CustomWrite(self.term), run_time=self.term_run_time)
     
     def get_play_actions(self):
         """Get the animations to play this term."""
-        from sanim import CustomWrite
         return [CustomWrite(self.term)]
     
     def individual_play_duration(self):
