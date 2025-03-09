@@ -1,0 +1,9 @@
+---
+description: Project context to navigate codebase
+globs: 
+alwaysApply: true
+---
+
+Project guide: [PROJECT_GUIDE.md](mdc:PROJECT_GUIDE.md)
+
+General context: [README.md](mdc:README.md)
