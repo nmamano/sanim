@@ -787,6 +787,7 @@ class TermElement(OutputElement):
             background_stroke_color=BACKGROUND_COLOR, 
             alignment=""
         )
+        self.term.set_color(DEFINITION_COLOR)
         
         # Animation timing
         self.term_run_time = 0.5
@@ -854,27 +855,26 @@ class ImageElement(OutputElement):
         """
         super().__init__(input_elem)
         
-        # Parse input to extract path and optional height
+        # Split content into path and optional size multiplier
         content_parts = input_elem.content.strip().split()
         if not content_parts:
             raise SanimParseError('Empty image path')
         
         image_path = content_parts[0]
+        # Default size multiplier is 1.0
+        self.size_multiplier = 1.0
         
-        # Optional height parameter
-        image_height = 4.0  # Default height
+        # If size multiplier is provided, parse it
         if len(content_parts) > 1:
             try:
-                image_height = float(content_parts[1])
+                self.size_multiplier = float(content_parts[1])
             except ValueError:
-                pass  # Ignore invalid height values
+                raise SanimParseError('Invalid size multiplier - must be a number')
         
         try:
-            # Load the image
+            # Load the image and scale it
             self.image = ImageMobject(image_path)
-            
-            # Set the height as specified
-            self.image.stretch_to_fit_height(image_height)
+            self.image.scale(self.size_multiplier)
             
             # Runtime based on a constant value
             self.run_time = 0.8
