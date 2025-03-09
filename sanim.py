@@ -1,672 +1,443 @@
 #!/usr/bin/env python
 
-from manim_engine.big_ol_pile_of_manim_imports import *
-from custom_animation import CustomWrite
+"""
+Sanim: A simplified animation system built on top of manim.
+
+This module provides tools to create animated presentations from simple text files.
+It parses a specific syntax and converts it into manim animations.
+
+Key Components:
+- Parser: Converts text input into structured elements
+- Elements: Different types of content (titles, text, bullets, etc.)
+- Renderer: Handles the animation and positioning of elements
+
+Usage:
+    python extract_scene.py -x path/to/presentation.txt
+"""
+
+import os
+import sys
 import shutil
 
-BACKGROUND = "#e6f3ff"
-DEF_COLOR = "#991f00"
-DEFAULT_RUNTIME = 0.8
-FLUSH_RUNTIME = 0.8
-#having some space between transitions allows the javascript to be more sloppy with the pausing times
-#the transitions are set to be in the middle of the wait time between transitions
-#eg, if there is a wait of 0.2s between transitions, then the player can run 0.1 longer than it should
-#and it wuld not be noticed
-WAIT_TIME = 0.2
-FLUSH_WAIT_TIME = 0.2 #0.8 #same
-#lines starting with this add text to the presentation
-CONTENT_KEYWORDS = {"TITLE", "DEF", "-", "PLAIN", "IMAGE", "TERM"}
+# Import manim components
+from manim_engine.big_ol_pile_of_manim_imports import *
 
-#lines starting with this give instructions about how to display the presentation
-COMMAND_KEYWORDS = {"FLUSH"}
+# Import utility modules
+from util.parsing import (
+    InputParser, InputLine, InputElement, ElementPosition,
+    SanimParseError, SanimRenderError
+)
 
-#modifiers are the only keywords that can appear before other keywords
-#(and nowhere else)
-MODIFIER_SYMBOLS = {">", "^"} #^ not implemented yet
+# Import element classes
+from elements.base import OutputElement
+from elements.text import (
+    TitleElement, PlainTextElement, BulletElement, 
+    DefinitionElement, TermElement
+)
+from elements.media import ImageElement
 
+# Custom animation class
+class CustomWrite(DrawBorderThenFill):
+    """Custom animation for text with a unique reveal style."""
+    CONFIG = {
+        "rate_func": lambda t: smooth(1.5 * t - 0.5 * np.sin(t * np.pi)),
+        "submobject_mode": "lagged_start",
+        "stroke_color": "#333333",  # Darker stroke for better contrast
+    }
 
-
-#a line of text plus its line number in the source file
-#it breaks it down into its basic components
-class InputLine:
-    def __init__(self, line_num, raw_content):
-        #line_num is used to flush up to a certian line with the FLUSH keyword
-        self.line_num = line_num
-        #keep the original line intact just in case
-        self.raw_content = raw_content[:]
-        self.raw_input_elems = raw_content.split(';')
-        self.input_elems = [InputElem(elem) for elem in self.raw_input_elems]
-        self.output_content_elems = []
-        for elem in self.input_elems:
-            if elem.keyword == "TITLE":
-                self.output_content_elems.append(TitleElem(elem))
-            elif elem.keyword == "PLAIN":
-                self.output_content_elems.append(PlainElem(elem))
-            elif elem.keyword == "-":
-                self.output_content_elems.append(BulletElem(elem))
-            elif elem.keyword == "DEF":
-                self.output_content_elems.append(DefElem(elem))
-            elif elem.keyword == "TERM":
-                self.output_content_elems.append(TermElem(elem))
-            elif elem.keyword == "IMAGE":
-                self.output_content_elems.append(ImageElem(elem))
-
-    def is_content_line(self):
-        return self.output_content_elems != []
-
-    def get_fade_out_actions(self):
-        res = []
-        for elem in self.output_content_elems:
-            res += elem.get_fade_out_actions()
-        return res
-
-class InputElem:
-    def __init__(self, raw_content):
-        if ';' in raw_content:
-            sys.exit('internal parsing error: input element cannot contain ";"')
-
-        #keep the raw content just in case
-        self.raw_content = raw_content[:]
-
-        #parse modifiers
-        self.modifiers = []
-        i = 0
-        while i < len(raw_content) and (raw_content[i] == ' ' or raw_content[i] in MODIFIER_SYMBOLS):
-            if raw_content[i] in MODIFIER_SYMBOLS:
-                self.modifiers.append(raw_content[i])
-            i += 1
-        while i < len(raw_content) and raw_content[i] == ' ':
-            i += 1
-
-        #parse keyword
-        raw_content = raw_content[i:] #everything except modifiers and trailing white space
-        potential_keyword = raw_content[:raw_content.find(' ')]
-        if potential_keyword in CONTENT_KEYWORDS or potential_keyword in COMMAND_KEYWORDS:
-            self.keyword = potential_keyword
-            self.content = raw_content[raw_content.find(' ')+1:]
+    def __init__(self, mob_or_text, **kwargs):
+        digest_config(self, kwargs)
+        if isinstance(mob_or_text, str):
+            mobject = TextMobject(mob_or_text)
         else:
-            #no keyword means that this is just plain text
-            self.keyword = "PLAIN" #'fake' keyword introduced by us
-            self.content = raw_content
-            if self.content == '':
-                self.modifiers.append('>') #never wait for empty input
-
-        self.keyword_type = 'content' if self.keyword in CONTENT_KEYWORDS else 'command'
-
-class OutputElem:
-    def __init__(self, input_elem):
-        self.input_elem = input_elem
-        if '>' in input_elem.modifiers:
-            self.wait_for_input = False
-        else: self.wait_for_input = True
-
-    def individual_play(self, scene):
-        pass
-
-    def get_play_actions(self):
-        pass
-
-    def individual_play_duration(self):
-        pass
-
-    def position_center_at(self, pos_mobj):
-        pass
-
-    def position_left_aligned(self, pos_mobj):
-        pass
-
-    def get_shift_center_at_actions(self, pos_mobj):
-        pass
-
-    def get_shift_left_aligned_actions(self, pos_mobj):
-        pass
-
-    def get_bottom_right_mobject(self):
-        pass
-
-    def get_fade_out_actions(self):
-        pass
-
-    def copy(self):
-        pass
-
-class TitleElem(OutputElem):
-    def __init__(self, input_elem):
-        super().__init__(input_elem)
-        content = input_elem.content
-        if content == '':
-            sys.exit('empty title')
-        self.run_time = 1.1+len(content)/200
-        self.text = Title(content, scale_factor=1.3, color=BLACK, background_stroke_color=BACKGROUND)
-
-    def copy(self):
-        return TitleElem(self.input_elem)
-
-    def individual_play(self, scene):
-        scene.play(CustomWrite(self.text), run_time=self.run_time)
-
-    def get_play_actions(self):
-        return [CustomWrite(self.text)]
-
-    def individual_play_duration(self):
-        return self.run_time
-
-    def position_center_at(self, pos_mobj):
-        self.text.move_to(pos_mobj)
-
-    def position_left_aligned(self, pos_mobj):
-        self.text.center()
-        self.text.to_edge(UP)
-
-    def get_shift_center_at_actions(self, pos_mobj):
-        return [ApplyMethod(self.text.move_to, pos_mobj)]
-
-    def get_shift_left_aligned_actions(self, pos_mobj):
-        sys.exit("not implemented")
-        pos_title = TextMobject("aux") #used only for positioning
-        pos_title.center()
-        pos_title.to_edge(UP)
-        return [ApplyMethod(self.text.move_to, pos_title, alignment=LEFT)]
-
-    def get_bottom_right_mobject(self):
-        return self.text
-
-    def get_fade_out_actions(self):
-        return [FadeOut(self.text)]
-
-class PlainElem(OutputElem):
-    def __init__(self, input_elem):
-        super().__init__(input_elem)
-        content = input_elem.content
-        if content == '':
-            self.text = TextMobject("aux") #this is never displayed but allows the empty object to
-                                           #be positioned and return its position,
-                                           #which can be useful since empty elems occupy space anyway
-            self.run_time = 0
-            self.is_empty = True
-        else:
-            self.text = TextMobject(content, color=BLACK, background_stroke_color=BACKGROUND)
-            self.run_time = 0.6+len(content)/150
-            self.is_empty = False
-
-    def copy(self):
-        return PlainElem(self.input_elem)
-
-    def individual_play(self, scene):
-        if self.is_empty:
-            return
-        scene.play(CustomWrite(self.text), run_time=self.run_time)
-
-    def get_play_actions(self):
-        if self.is_empty:
-            return []
-        return [CustomWrite(self.text)]
-
-    def individual_play_duration(self):
-        return self.run_time
-
-    def position_center_at(self, pos_mobj):
-        self.text.move_to(pos_mobj)
-
-    def position_left_aligned(self, pos_mobj):
-        self.text.move_to(pos_mobj)
-        self.text.to_edge(LEFT)
-
-    def get_shift_center_at_actions(self, pos_mobj):
-        if self.is_empty:
-            return []
-        return [ApplyMethod(self.text.move_to, pos_mobj)]
-
-    def get_shift_left_aligned_actions(self, pos_mobj):
-        if self.is_empty:
-            return []
-        pos_text = TextMobject("aux") #used only for positioning
-        pos_text.move_to(pos_mobj)
-        pos_text.to_edge(LEFT)
-        return [ApplyMethod(self.text.move_to, pos_text)]
-
-    def get_bottom_right_mobject(self):
-        return self.text
-
-    def get_fade_out_actions(self):
-        if self.is_empty:
-            return []
-        return [FadeOut(self.text)]
-
-class BulletElem(OutputElem):
-    def __init__(self, input_elem):
-        super().__init__(input_elem)
-        content = input_elem.content
-        if content == '':
-            sys.exit("empty bullet item")
-        self.text = BulletedItem(content, color=BLACK, background_stroke_color=BACKGROUND)
-        self.run_time = 0.6+len(content)/150
-
-    def copy(self):
-        return BulletElem(self.input_elem)
-
-    def individual_play(self, scene):
-        scene.play(CustomWrite(self.text), run_time=self.run_time)
-
-    def get_play_actions(self):
-        return [CustomWrite(self.text)]
-
-    def individual_play_duration(self):
-        return self.run_time
-
-    def position_center_at(self, pos_mobj):
-        self.text.move_to(pos_mobj)
-
-    def position_left_aligned(self, pos_mobj):
-        self.text.move_to(pos_mobj)
-        self.text.to_edge(LEFT)
-
-    def get_shift_center_at_actions(self, pos_mobj):
-        return [ApplyMethod(self.text.move_to, pos_mobj)]
-
-    def get_shift_left_aligned_actions(self, pos_mobj):
-        pos_text = BulletedItem(self.input_elem.content) #used only for positioning
-        pos_text.move_to(pos_mobj)
-        pos_text.to_edge(LEFT)
-        return [ApplyMethod(self.text.move_to, pos_text)]
-
-    def get_bottom_right_mobject(self):
-        return self.text
-
-    def get_fade_out_actions(self):
-        return [FadeOut(self.text)]
-class DefElem(OutputElem):
-    def __init__(self, input_elem):
-        super().__init__(input_elem)
-        content = input_elem.content[:]
-        #parse content to extract term and definition
-        content = content.lstrip() #removes leading whitespace
-        if content[0] != '"':
-            sys.exit('invalid use of DEF. syntax: DEF "term" definition')
-        content = content[1:]
-        if not '"' in content:
-            sys.exit('invalid use of DEF. syntax: DEF "term" definition')
-        self.term_text = content[:content.find('"')]
-        self.defi_text = content[content.find('"')+1:]
-        self.defi_text.lstrip()
-        if self.term_text == '':
-            sys.exit('empty term in DEF')
-        if self.defi_text == '':
-            sys.exit('empty definition in DEF')
-
-        self.term = TextMobject('\\textbf{'+self.term_text+'}:',background_stroke_color=BACKGROUND, alignment="")
-        self.term.set_color(DEF_COLOR)
-        self.defi = TextMobject(self.defi_text,color=BLACK, background_stroke_color=BACKGROUND, alignment="")
-        #res.buff = LARGE_BUFF #not sure why this was here
-
-        self.term_run_time = 0.5
-        self.in_between_time = 0.1
-        self.defi_run_time = 0.6+len(self.defi_text)/150
-
-    def copy(self):
-        return DefElem(self.input_elem)
-
-    def individual_play(self, scene):
-        scene.play(CustomWrite(self.term), run_time=self.term_run_time)
-        scene.wait(self.in_between_time)
-        scene.play(CustomWrite(self.defi), run_time=self.defi_run_time)
-
-    def get_play_actions(self):
-        return [CustomWrite(self.term), CustomWrite(self.defi)]
-
-    def individual_play_duration(self):
-        return self.term_run_time + self.in_between_time + self.defi_run_time
-
-    def position_center_at(self, pos_mobj):
-        self.term.move_to(pos_mobj)
-        self.defi.next_to(self.term, RIGHT)
-        self.defi.align_to(self.term, UP)
-
-    def position_left_aligned(self, pos_mobj):
-        self.term.move_to(pos_mobj)
-        self.term.to_edge(LEFT)
-        self.defi.next_to(self.term, RIGHT)
-        self.defi.align_to(self.term, UP)
-
-    def get_shift_center_at_actions(self, pos_mobj):
-        pos_term = TextMobject(self.term_text, alignment = "") #used for positioning
-        pos_defi = TextMobject(self.defi_text, alignment = "") #used for positioning
-        pos_term.move_to(pos_mobj)
-        pos_defi.next_to(pos_term, RIGHT)
-        pos_defi.align_to(pos_term, UP)
-        return [ApplyMethod(self.term.move_to, pos_term), ApplyMethod(self.defi.move_to, pos_defi)]
-
-    def get_shift_left_aligned_actions(self, pos_mobj):
-        pos_term = TextMobject(self.term_text, alignment = "") #used for positioning
-        pos_defi = TextMobject(self.defi_text, alignment = "") #used for positioning
-        pos_term.move_to(pos_mobj)
-        pos_term.to_edge(LEFT)
-        pos_defi.next_to(pos_term, RIGHT)
-        pos_defi.align_to(pos_term, UP)
-        return [ApplyMethod(self.term.move_to, pos_term), ApplyMethod(self.defi.move_to, pos_defi)]
-
-    def get_bottom_right_mobject(self):
-        return self.defi
-
-    def get_fade_out_actions(self):
-        return [FadeOut(self.term), FadeOut(self.defi)]
-
-class TermElem(OutputElem):
-    def __init__(self, input_elem):
-        super().__init__(input_elem)
-        content = input_elem.content[:]
-        #parse content to extract term
-        content = content.lstrip() #removes leading whitespace
-        if content[0] != '"':
-            sys.exit('invalid use of TERM. syntax: TERM "term"')
-        content = content[1:]
-        if not '"' in content:
-            sys.exit('invalid use of TERM. syntax: TERM "term"')
-        self.term_text = content[:content.find('"')]
-        if self.term_text == '':
-            sys.exit('empty term in TERM')
-
-        self.term = TextMobject('\\textbf{'+self.term_text+'}',background_stroke_color=BACKGROUND, alignment="")
-        self.term.set_color(DEF_COLOR)
-
-        self.term_run_time = 0.5
-
-    def copy(self):
-        return TermElem(self.input_elem)
-
-    def individual_play(self, scene):
-        scene.play(CustomWrite(self.term), run_time=self.term_run_time)
-
-    def get_play_actions(self):
-        return [CustomWrite(self.term)]
-
-    def individual_play_duration(self):
-        return self.term_run_time
-
-    def position_center_at(self, pos_mobj):
-        self.term.move_to(pos_mobj)
-
-    def position_left_aligned(self, pos_mobj):
-        self.term.move_to(pos_mobj)
-        self.term.to_edge(LEFT)
-
-    def get_shift_center_at_actions(self, pos_mobj):
-        pos_term = TextMobject(self.term_text, alignment = "") #used for positioning
-        pos_term.move_to(pos_mobj)
-        return [ApplyMethod(self.term.move_to, pos_term)]
-
-    def get_shift_left_aligned_actions(self, pos_mobj):
-        pos_term = TextMobject(self.term_text, alignment = "") #used for positioning
-        pos_term.move_to(pos_mobj)
-        pos_term.to_edge(LEFT)
-        return [ApplyMethod(self.term.move_to, pos_term)]
-
-    def get_bottom_right_mobject(self):
-        return self.term
-
-    def get_fade_out_actions(self):
-        return [FadeOut(self.term)]
-
-class ImageElem(OutputElem):
-    def __init__(self, input_elem):
-        super().__init__(input_elem)
-        # Split content into path and optional size multiplier
-        content_parts = input_elem.content.strip().split()
-        if len(content_parts) == 0:
-            sys.exit('empty image path')
-        
-        image_path = content_parts[0]
-        # Default size multiplier is 1.0
-        self.size_multiplier = 1.0
-        
-        # If size multiplier is provided, parse it
-        if len(content_parts) > 1:
-            try:
-                self.size_multiplier = float(content_parts[1])
-            except ValueError:
-                sys.exit('invalid size multiplier - must be a number')
-        
-        # Load the image and scale it
-        self.image = ImageMobject(image_path)
-        self.image.scale(self.size_multiplier)
-        
-        # Runtime based on a constant value
-        self.run_time = 0.8
-    
-    def copy(self):
-        return ImageElem(self.input_elem)
-    
-    def individual_play(self, scene):
-        scene.play(FadeIn(self.image), run_time=self.run_time)
-    
-    def get_play_actions(self):
-        return [FadeIn(self.image)]
-    
-    def individual_play_duration(self):
-        return self.run_time
-    
-    def position_center_at(self, pos_mobj):
-        self.image.move_to(pos_mobj)
-    
-    def position_left_aligned(self, pos_mobj):
-        # First align the top of the image with the current position
-        # This ensures it appears below previous content, not overlapping
-        self.image.move_to(pos_mobj)
-        
-        # Align the top edge of the image with the position
-        # This is crucial to avoid overlapping with previous content
-        current_top = self.image.get_top()
-        target_top = pos_mobj.get_center() + UP * 0.1  # Small buffer
-        self.image.shift(target_top - current_top)
-        
-        # Center horizontally in the frame
-        center_x = ORIGIN[0]  # X-coordinate of the center of the screen
-        current_x = self.image.get_center()[0]  # Current X-coordinate of the image
-        self.image.shift(RIGHT * (center_x - current_x))
-    
-    def get_shift_center_at_actions(self, pos_mobj):
-        return [ApplyMethod(self.image.move_to, pos_mobj)]
-    
-    def get_shift_left_aligned_actions(self, pos_mobj):
-        # Create a target position object for positioning
-        temp_image = self.image.copy()  # Used only for positioning
-        
-        # First align the top with current position (to avoid overlap)
-        temp_image.move_to(pos_mobj)
-        current_top = temp_image.get_top()
-        target_top = pos_mobj.get_center() + UP * 0.1  # Small buffer
-        temp_image.shift(target_top - current_top)
-        
-        # Center horizontally in the frame
-        center_x = ORIGIN[0]  # X-coordinate of the center of the screen
-        current_x = temp_image.get_center()[0]  # Current X-coordinate
-        temp_image.shift(RIGHT * (center_x - current_x))
-        
-        return [ApplyMethod(self.image.move_to, temp_image)]
-    
-    def get_bottom_right_mobject(self):
-        return self.image
-    
-    def get_fade_out_actions(self):
-        return [FadeOut(self.image)]
-
-def display_animation_buffer(anim_buffer, scene, time_stamps):
-    if len(anim_buffer) == 0:
-        return
-    if len(anim_buffer) == 1:
-        elem = anim_buffer[0]
-        elem.individual_play(scene)
-    else:
-        actions = []
-        for elem in anim_buffer:
-            actions += elem.get_play_actions()
-        scene.play(*actions, run_time=DEFAULT_RUNTIME)
-
-    anim_buffer.clear()
-
-    time_stamps.append(scene.current_scene_time+WAIT_TIME/2)
-    scene.wait(WAIT_TIME)
-
-def add_elem_to_anim_buffer(elem, anim_buffer, scene, time_stamps):
-    if elem.wait_for_input:
-        display_animation_buffer(anim_buffer, scene, time_stamps)
-    anim_buffer.append(elem)
-
-def get_top_left_pos():
-    res = TextMobject("aux") #used only for its positioninig
-    res.to_corner(TOP+LEFT, buff=MED_SMALL_BUFF)
-    return res
-
-def animate_content_line(line, curr_pos, anim_buffer, scene, time_stamps):
-    elems = line.output_content_elems
-    if len(elems) == 1:
-        elem = elems[0]
-        elem.position_left_aligned(curr_pos)
-        curr_pos.move_to(elem.get_bottom_right_mobject().get_edge_center(DOWN))
-        add_elem_to_anim_buffer(elem, anim_buffer, scene, time_stamps)
-    else:
-        num_elems = len(elems)
-        i = 1
-        for elem in elems:
-            curr_pos.to_edge(LEFT, buff=0)
-            curr_pos.shift(RIGHT*(curr_pos.get_edge_center(LEFT)-curr_pos.get_center()))
-            curr_pos.shift(i*2*FRAME_X_RADIUS*RIGHT/(num_elems+1))
-            elem.position_center_at(curr_pos)
-            i += 1
-            add_elem_to_anim_buffer(elem, anim_buffer, scene, time_stamps)
-        curr_pos.move_to(elems[-1].get_bottom_right_mobject().get_edge_center(DOWN))
-
-    curr_pos.shift(DOWN*0.5)
-
-def get_shift_actions(line, curr_pos):
-    elems = line.output_content_elems
-    res = []
-    if len(elems) == 0:
-        return []
-    if len(elems) == 1:
-        elem = elems[0]
-        #actions = get_shift_left_aligned_actions(curr_pos)
-        res += elem.get_shift_left_aligned_actions(curr_pos)
-        elem_copy = elem.copy()
-        elem_copy.position_left_aligned(curr_pos)
-        curr_pos.move_to(elem_copy.get_bottom_right_mobject().get_edge_center(DOWN))
-    else:
-        num_elems = len(elems)
-        i = 1
-        for elem in elems:
-            curr_pos.to_edge(LEFT, buff=0)
-            curr_pos.shift(RIGHT*(curr_pos.get_edge_center(LEFT)-curr_pos.get_center()))
-            curr_pos.shift(i*2*FRAME_X_RADIUS*RIGHT/(num_elems+1))
-            res += elem.get_shift_center_at_actions(curr_pos)
-            i += 1
-        elem_copy = elems[-1].copy()
-        elem_copy.position_center_at(curr_pos)
-        curr_pos.move_to(elem_copy.get_bottom_right_mobject().get_edge_center(DOWN))
-
-    curr_pos.shift(DOWN*0.5)
-    return res
-
-
-def animate_lines(lines, scene):
-    flush_index = 0 #starting line to flush when using flush
-    animation_buffer = []
-    scene.wait(WAIT_TIME)
-    time_stamps = [WAIT_TIME/2] #for the web
-    curr_pos = get_top_left_pos()
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-        if line.is_content_line():
-            animate_content_line(line, curr_pos, animation_buffer, scene, time_stamps)
-            i += 1
-        else:
-            elems = line.input_elems
-            if len(elems) == 0:
-                sys.exit("empty line")
-            if len(elems) > 1:
-                sys.exit("more than one command in a line")
-            elem = elems[0]
-            if elem.keyword == 'FLUSH':
-                display_animation_buffer(animation_buffer, scene, time_stamps) #leftover stuff
-                curr_line_num = line.line_num
-                
-                # If content is empty or whitespace, flush everything up to current line
-                # and automatically display the next line
-                if not elem.content.strip():
-                    flush_line_num = curr_line_num
-                    auto_display_next = True
-                else:
-                    flush_line_num = int(elem.content)
-                    auto_display_next = False
-                
-                if flush_line_num > curr_line_num:
-                    sys.exit("cannot flush beyond the current line")
-                fade_out_actions = []
-                while lines[flush_index].line_num < flush_line_num:
-                    if lines[flush_index].is_content_line():
-                        fade_out_actions += lines[flush_index].get_fade_out_actions()
-                    flush_index += 1
-                curr_pos = get_top_left_pos()
-                shift_actions = []
-                j = flush_index
-                while lines[j].line_num < curr_line_num:
-                    shift_actions += get_shift_actions(lines[j], curr_pos)
-                    j += 1
-                scene.play(*fade_out_actions, *shift_actions, run_time=FLUSH_RUNTIME)
-
-                time_stamps.append(scene.current_scene_time+FLUSH_WAIT_TIME/2)
-                scene.wait(FLUSH_WAIT_TIME)
-
-                # If auto-displaying next line, render it now
-                if auto_display_next and i + 1 < len(lines):
-                    next_line = lines[i + 1]
-                    if next_line.is_content_line():
-                        animate_content_line(next_line, curr_pos, animation_buffer, scene, time_stamps)
-                    i += 2  # Skip both the FLUSH and the displayed line
-                else:
-                    i += 1
+            mobject = mob_or_text
+        if "run_time" not in kwargs:
+            self.establish_run_time(mobject)
+        if "lag_factor" not in kwargs:
+            if len(mobject.family_members_with_points()) < 4:
+                min_lag_factor = 1
             else:
-                sys.exit("unknown command")
-    display_animation_buffer(animation_buffer, scene, time_stamps) #leftover stuff
-    return time_stamps
+                min_lag_factor = 1.5
+            self.lag_factor = max(self.run_time - 1, min_lag_factor)
+        DrawBorderThenFill.__init__(self, mobject, **kwargs)
 
-#note that the first line has index 1 (because my editor starts counting at 1...)
-def input_to_lines(source_file):
-    input_lines = open(source_file).read().splitlines()
-    res = []
-    i = 1
-    for line in input_lines:
-        if line == "":
-            pass
-            # sys.exit("empty line "+str(i))
+    def establish_run_time(self, mobject):
+        num_subs = len(mobject.family_members_with_points())
+        if num_subs < 15:
+            self.run_time = 1.2  # Slightly slower for emphasis
         else:
-            res.append(InputLine(i, line))
-        i += 1
-    return res
+            self.run_time = 2.2
+
+# Constants for presentation styling
+BACKGROUND_COLOR = "#e6f3ff"
+DEFINITION_COLOR = "#991f00"
+
+# Animation timing constants
+DEFAULT_ANIMATION_RUNTIME = 0.8
+FLUSH_ANIMATION_RUNTIME = 0.8
+ELEMENT_DISPLAY_WAIT_TIME = 0.2
+FLUSH_DISPLAY_WAIT_TIME = 0.2
+
+# File path constants
+SANIM_AUX_FILE = 'manim_engine' + os.sep + 'sanim_flag_AUTOGENERATED.txt'
+SANIM_HTML_FILE = "sanim_interactive.html"
+SANIM_LOCAL_HTML_FILE = "sanim_interactive_AUTOGENERATED.html"
+SANIM_VIDEO_FILE = "vid"  # .mp4 extension is added automatically
+SANIM_TIME_STAMPS_FILE = "time_stamps_AUTOGENERATED.js"
+
+
+class AnimationBuffer:
+    """
+    Manages a buffer of animations to be played together.
+    """
+    
+    def __init__(self, scene):
+        """
+        Initialize a new animation buffer.
+        
+        Args:
+            scene: The scene to play animations in
+        """
+        self.scene = scene
+        self.buffer = []
+        self.time_stamps = []
+    
+    def add_element(self, element):
+        """
+        Add an element to the animation buffer.
+        
+        If the element should wait for input, the buffer is flushed before
+        adding the element.
+        
+        Args:
+            element: The element to add
+        """
+        if element.wait_for_input:
+            self.flush()
+        self.buffer.append(element)
+    
+    def flush(self):
+        """
+        Play all animations in the buffer and clear it.
+        """
+        if not self.buffer:
+            return
+        
+        if len(self.buffer) == 1:
+            # Play a single element
+            element = self.buffer[0]
+            element.individual_play(self.scene)
+        else:
+            # Play multiple elements together
+            actions = []
+            for element in self.buffer:
+                actions.extend(element.get_play_actions())
+            self.scene.play(*actions, run_time=DEFAULT_ANIMATION_RUNTIME)
+        
+        # Clear the buffer
+        self.buffer.clear()
+        
+        # Record timestamp for the web player
+        self.time_stamps.append(self.scene.current_scene_time + ELEMENT_DISPLAY_WAIT_TIME / 2)
+        self.scene.wait(ELEMENT_DISPLAY_WAIT_TIME)
+    
+    def get_time_stamps(self):
+        """
+        Get the timestamps of all animations.
+        
+        Returns:
+            List of timestamps in seconds
+        """
+        return self.time_stamps
+
+
+class PresentationRenderer:
+    """
+    Renders a presentation from InputLines.
+    """
+    
+    def __init__(self, scene):
+        """
+        Initialize a new presentation renderer.
+        
+        Args:
+            scene: The scene to render in
+        """
+        self.scene = scene
+        self.position = ElementPosition()
+        self.animation_buffer = AnimationBuffer(scene)
+    
+    def render_line(self, line):
+        """
+        Render a line of content.
+        
+        Args:
+            line: The line to render
+        """
+        elements = line.output_elements
+        
+        if len(elements) == 1:
+            # Single element - left aligned
+            element = elements[0]
+            element.position_left_aligned(self.position.get_current_position())
+            self.position.update_after_element(element)
+            self.animation_buffer.add_element(element)
+        else:
+            # Multiple elements - distribute horizontally
+            num_elements = len(elements)
+            for i, element in enumerate(elements, 1):
+                # Create a position for this element
+                position = self.position.get_current_position()
+                position.to_edge(LEFT, buff=0)
+                position.shift(RIGHT * (position.get_edge_center(LEFT) - position.get_center()))
+                position.shift(i * 2 * FRAME_X_RADIUS * RIGHT / (num_elements + 1))
+                
+                # Position and animate the element
+                element.position_center_at(position)
+                self.animation_buffer.add_element(element)
+            
+            # Update position to the bottom of the last element
+            self.position.update_after_element(elements[-1])
+    
+    def get_shift_actions(self, line, position):
+        """
+        Get animations to shift elements in a line to a new position.
+        
+        Args:
+            line: The line to shift
+            position: The new position
+            
+        Returns:
+            List of animations to play
+        """
+        elements = line.output_elements
+        result = []
+        
+        if not elements:
+            return []
+        
+        if len(elements) == 1:
+            # Single element - left aligned
+            element = elements[0]
+            result.extend(element.get_shift_left_aligned_actions(position))
+            
+            # Update position
+            element_copy = element.copy()
+            element_copy.position_left_aligned(position)
+            position.move_to(element_copy.get_bottom_position().get_edge_center(DOWN))
+        else:
+            # Multiple elements - distribute horizontally
+            num_elements = len(elements)
+            for i, element in enumerate(elements, 1):
+                # Create a position for this element
+                elem_position = position.copy()
+                elem_position.to_edge(LEFT, buff=0)
+                elem_position.shift(RIGHT * (elem_position.get_edge_center(LEFT) - elem_position.get_center()))
+                elem_position.shift(i * 2 * FRAME_X_RADIUS * RIGHT / (num_elements + 1))
+                
+                # Get shift actions
+                result.extend(element.get_shift_center_at_actions(elem_position))
+            
+            # Update position
+            element_copy = elements[-1].copy()
+            element_copy.position_center_at(elem_position)
+            position.move_to(element_copy.get_bottom_position().get_edge_center(DOWN))
+        
+        # Add some vertical spacing
+        position.shift(DOWN * 0.5)
+        return result
+    
+    def render_presentation(self, lines):
+        """
+        Render a complete presentation.
+        
+        Args:
+            lines: List of input lines to render
+            
+        Returns:
+            List of timestamps for the web player
+        """
+        flush_index = 0  # Starting line to flush when using FLUSH
+        
+        # Initial wait
+        self.scene.wait(ELEMENT_DISPLAY_WAIT_TIME)
+        self.animation_buffer.time_stamps = [ELEMENT_DISPLAY_WAIT_TIME / 2]  # Initial timestamp
+        
+        for line in lines:
+            if line.is_content_line():
+                # Render content line
+                self.render_line(line)
+            else:
+                # Process command line
+                elements = line.input_elements
+                if not elements:
+                    raise SanimParseError("Empty line")
+                if len(elements) > 1:
+                    raise SanimParseError("More than one command in a line")
+                
+                element = elements[0]
+                if element.keyword == 'FLUSH':
+                    # Flush command
+                    self.animation_buffer.flush()  # Flush any leftover animations
+                    
+                    # Parse flush line number (if empty, use the current line)
+                    try:
+                        if element.content.strip():
+                            flush_line_num = int(element.content)
+                        else:
+                            flush_line_num = line.line_num
+                    except ValueError:
+                        raise SanimParseError(f"Invalid flush line number: {element.content}")
+                    
+                    current_line_num = line.line_num
+                    if flush_line_num > current_line_num:
+                        raise SanimParseError("Cannot flush beyond the current line")
+                    
+                    # Collect fade out animations for lines to be flushed
+                    fade_out_actions = []
+                    while flush_index < len(lines) and lines[flush_index].line_num < flush_line_num:
+                        if lines[flush_index].is_content_line():
+                            fade_out_actions.extend(lines[flush_index].get_fade_out_actions())
+                        flush_index += 1
+                    
+                    # Reset position to top
+                    self.position.reset_to_top()
+                    
+                    # Collect shift animations for lines to be kept
+                    shift_actions = []
+                    i = flush_index
+                    current_position = self.position.get_current_position()
+                    while i < len(lines) and lines[i].line_num < current_line_num:
+                        shift_actions.extend(self.get_shift_actions(
+                            lines[i], current_position))
+                        i += 1
+                    
+                    # Play flush animations
+                    if fade_out_actions or shift_actions:
+                        self.scene.play(
+                            *fade_out_actions, *shift_actions, 
+                            run_time=FLUSH_ANIMATION_RUNTIME
+                        )
+                    
+                    # Record timestamp and wait
+                    self.animation_buffer.time_stamps.append(
+                        self.scene.current_scene_time + FLUSH_DISPLAY_WAIT_TIME / 2
+                    )
+                    self.scene.wait(FLUSH_DISPLAY_WAIT_TIME)
+                else:
+                    raise SanimParseError(f"Unknown command: {element.keyword}")
+        
+        # Flush any remaining animations
+        self.animation_buffer.flush()
+        
+        return self.animation_buffer.get_time_stamps()
 
 
 class Sanim(Scene):
+    """
+    Main Sanim scene class for rendering presentations.
+    """
+    
     CONFIG = {
-        "camera_config": {"background_color": BACKGROUND}
+        "camera_config": {"background_color": BACKGROUND_COLOR}
     }
+    
     def construct(self):
-        with open(SANIM_AUX_FILE, "r") as sanim_file:
-                source_file = sanim_file.read()
-        lines = input_to_lines(source_file)
-        print("finished parsing")
-        time_stamps = animate_lines(lines, self)
-        source_folder = get_sanim_source_dir()
-        web_info_file = os.path.join(source_folder,SANIM_TIME_STAMPS_FILE)
-        with open(web_info_file, 'w') as web_file:
-            web_file.write("var timeStamps = "+str([round(stmp, 4) for stmp in time_stamps])+"\n")
-        source_html = os.path.join(get_main_manim_dir(), SANIM_HTML_FILE)
-        dest_html = os.path.join(source_folder, SANIM_LOCAL_HTML_FILE)
+        """Construct the scene for the presentation."""
         try:
-            shutil.copy2(source_html, dest_html)
+            # Read the source file path from the auxiliary file
+            with open(SANIM_AUX_FILE, "r") as sanim_file:
+                source_file = sanim_file.read().strip()
+            
+            # Parse the input file
+            lines = InputParser.parse_file(source_file)
+            print("Finished parsing")
+            
+            # Render the presentation
+            renderer = PresentationRenderer(self)
+            time_stamps = renderer.render_presentation(lines)
+            
+            # Save timestamp data for the web player
+            self._save_web_player_data(source_file, time_stamps)
+            
+        except SanimParseError as e:
+            print(f"Error parsing input: {str(e)}")
+            sys.exit(1)
+        except SanimRenderError as e:
+            print(f"Error rendering presentation: {str(e)}")
+            sys.exit(1)
         except Exception as e:
-            print(f"Error copying file: {e}")
+            import traceback
+            print(f"Unexpected error: {str(e)}")
+            traceback.print_exc()
+            sys.exit(1)
+    
+    def _save_web_player_data(self, source_file, time_stamps):
+        """
+        Save data for the web player.
+        
+        Args:
+            source_file: Path to the source file
+            time_stamps: List of timestamps
+        """
+        try:
+            # Get source directory
+            source_folder = os.path.dirname(os.path.abspath(source_file))
+            
+            # Save timestamps
+            web_info_file = os.path.join(source_folder, SANIM_TIME_STAMPS_FILE)
+            with open(web_info_file, 'w') as web_file:
+                web_file.write(f"var timeStamps = {[round(t, 4) for t in time_stamps]}\n")
+            
+            # Copy HTML template
+            source_html = os.path.join(self._get_main_manim_dir(), SANIM_HTML_FILE)
+            dest_html = os.path.join(source_folder, SANIM_LOCAL_HTML_FILE)
             try:
-                # Attempt to clean up the temporary file
-                os.remove(dest_html)
-            except Exception as cleanup_e:
-                print(f"Error cleaning up temporary file: {cleanup_e}")
+                shutil.copy2(source_html, dest_html)
+            except Exception as e:
+                print(f"Error copying HTML template: {e}")
+                try:
+                    # Attempt to clean up
+                    os.remove(dest_html)
+                except Exception:
+                    pass
+        except Exception as e:
+            print(f"Error saving web player data: {e}")
+    
+    def _get_main_manim_dir(self):
+        """
+        Get the main manim directory.
+        
+        Returns:
+            Path to the main manim directory
+        """
+        # Find the directory containing the module
+        # This is the directory containing sanim_refactored.py
+        module_dir = os.path.dirname(os.path.abspath(__file__))
+        return module_dir
+
+
+# Utility functions for compatibility with the original sanim.py
+
+def get_sanim_source_dir():
+    """
+    Get the directory containing the sanim source file.
+    
+    Returns:
+        Path to the sanim source directory
+    """
+    with open(SANIM_AUX_FILE, "r") as sanim_file:
+        source_file = sanim_file.read().strip()
+    return os.path.dirname(os.path.abspath(source_file))
+
+
+def get_main_manim_dir():
+    """
+    Get the main manim directory.
+    
+    Returns:
+        Path to the main manim directory
+    """
+    # Find the directory containing the module
+    module_dir = os.path.dirname(os.path.abspath(__file__))
+    return module_dir
